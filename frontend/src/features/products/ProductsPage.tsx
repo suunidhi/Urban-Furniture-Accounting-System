@@ -25,6 +25,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { useDebounce } from '../../hooks/useDebounce';
+import { Pagination } from '../../components/ui/Pagination';
 
 export const ProductsPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -40,6 +41,11 @@ export const ProductsPage: React.FC = () => {
   const [detailModalProductId, setDetailModalProductId] = useState<number | null>(null);
   const [paymentModalTx, setPaymentModalTx] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, selectedCategory, statusFilter, viewMode]);
 
   const [paymentFormData, setPaymentFormData] = useState({
     amount: 0,
@@ -405,7 +411,7 @@ export const ProductsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E7EB]">
-              {products.map((p) => (
+              {(products?.slice((currentPage - 1) * 10, currentPage * 10) || []).map((p) => (
                 <tr
                   key={p.id}
                   onClick={() => setDetailModalProductId(p.id)}
@@ -503,7 +509,7 @@ export const ProductsPage: React.FC = () => {
       ) : (
         /* Kanban View */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {products.map((p) => (
+          {(products?.slice((currentPage - 1) * 10, currentPage * 10) || []).map((p) => (
             <div
               key={p.id}
               onClick={() => setDetailModalProductId(p.id)}
@@ -587,6 +593,14 @@ export const ProductsPage: React.FC = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {products && products.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalItems={products.length}
+          onPageChange={setCurrentPage}
+        />
       )}
 
       {/* Create Product Modal - Exactly as Mockup Form */}

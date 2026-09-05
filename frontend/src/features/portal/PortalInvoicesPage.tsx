@@ -14,6 +14,7 @@ import {
   Building2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { Pagination } from '../../components/ui/Pagination';
 
 export const PortalInvoicesPage: React.FC = () => {
   const { user } = useAuth();
@@ -23,6 +24,7 @@ export const PortalInvoicesPage: React.FC = () => {
   const [payMethod, setPayMethod] = useState<PaymentMethod>('BANK');
   const [payAmount, setPayAmount] = useState<number>(0);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Fetch Invoices for logged-in contact user
   const { data: invoices, isLoading } = useQuery<CustomerInvoice[]>({
@@ -144,7 +146,7 @@ export const PortalInvoicesPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {invoices.map((inv) => (
+                {(invoices?.slice((currentPage - 1) * 10, currentPage * 10) || []).map((inv) => (
                   <tr key={inv.id} className="hover:bg-gray-50/70 transition-colors">
                     <td className="py-4 px-4 font-semibold text-[#714B67]">
                       {inv.invoiceNumber}
@@ -199,6 +201,13 @@ export const PortalInvoicesPage: React.FC = () => {
               </tbody>
             </table>
           </div>
+        )}
+        {invoices && invoices.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={invoices.length}
+            onPageChange={setCurrentPage}
+          />
         )}
       </div>
 

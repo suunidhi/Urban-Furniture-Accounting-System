@@ -20,6 +20,7 @@ import {
   Wallet,
   Layers
 } from 'lucide-react';
+import { Pagination } from '../../components/ui/Pagination';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -48,6 +49,11 @@ export const PaymentsPage: React.FC<PaymentsPageProps> = ({ defaultType = 'ALL' 
   const [detailPaymentId, setDetailPaymentId] = useState<number | null>(null);
   const [chartType, setChartType] = useState<'area' | 'bar'>('area');
   const [showCharts, setShowCharts] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, typeFilter]);
 
   // Sync if route prop changes
   useEffect(() => {
@@ -498,7 +504,7 @@ export const PaymentsPage: React.FC<PaymentsPageProps> = ({ defaultType = 'ALL' 
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {payments.map((p) => (
+                {(payments?.slice((currentPage - 1) * 10, currentPage * 10) || []).map((p) => (
                   <tr
                     key={p.id}
                     onClick={() => setDetailPaymentId(p.id)}
@@ -553,6 +559,13 @@ export const PaymentsPage: React.FC<PaymentsPageProps> = ({ defaultType = 'ALL' 
               </tbody>
             </table>
           </div>
+        )}
+        {payments && payments.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={payments.length}
+            onPageChange={setCurrentPage}
+          />
         )}
       </div>
 

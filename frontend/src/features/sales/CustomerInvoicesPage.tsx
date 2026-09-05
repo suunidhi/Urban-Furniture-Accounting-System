@@ -28,6 +28,7 @@ import {
   Download 
 } from 'lucide-react';
 import { useDebounce } from '../../hooks/useDebounce';
+import { Pagination } from '../../components/ui/Pagination';
 
 export const CustomerInvoicesPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -39,6 +40,11 @@ export const CustomerInvoicesPage: React.FC = () => {
   const [detailInvoiceId, setDetailInvoiceId] = useState<number | null>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, statusFilter]);
   
   const { isAdmin } = useAuth() || { isAdmin: false };
 
@@ -483,7 +489,7 @@ export const CustomerInvoicesPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {invoices.map((inv) => (
+                {(invoices?.slice((currentPage - 1) * 10, currentPage * 10) || []).map((inv) => (
                   <tr
                     key={inv.id}
                     onClick={() => setDetailInvoiceId(inv.id)}
@@ -530,6 +536,13 @@ export const CustomerInvoicesPage: React.FC = () => {
               </tbody>
             </table>
           </div>
+        )}
+        {invoices && invoices.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={invoices.length}
+            onPageChange={setCurrentPage}
+          />
         )}
       </div>
 

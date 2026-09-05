@@ -15,12 +15,19 @@ import {
   ArrowDownRight
 } from 'lucide-react';
 import { useDebounce } from '../../hooks/useDebounce';
+import { Pagination } from '../../components/ui/Pagination';
 
 export const ChartOfAccountsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 350);
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, typeFilter]);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [ledgerAccountId, setLedgerAccountId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -193,7 +200,7 @@ export const ChartOfAccountsPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredAccounts.map((acc) => (
+                (filteredAccounts.slice((currentPage - 1) * 10, currentPage * 10)).map((acc) => (
                   <tr
                     key={acc.id}
                     onClick={() => setLedgerAccountId(acc.id)}
@@ -236,6 +243,13 @@ export const ChartOfAccountsPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+        {filteredAccounts && filteredAccounts.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredAccounts.length}
+            onPageChange={setCurrentPage}
+          />
+        )}
       </div>
 
       {/* Create Account Modal */}

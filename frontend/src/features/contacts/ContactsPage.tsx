@@ -24,6 +24,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { useDebounce } from '../../hooks/useDebounce';
+import { Pagination } from '../../components/ui/Pagination';
 
 export const ContactsPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -37,6 +38,11 @@ export const ContactsPage: React.FC = () => {
   const [editModalContact, setEditModalContact] = useState<Contact | null>(null);
   const [detailModalContactId, setDetailModalContactId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, typeFilter, statusFilter, viewMode]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -317,7 +323,7 @@ export const ContactsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E7EB]">
-              {contacts.map((c) => (
+              {(contacts?.slice((currentPage - 1) * 10, currentPage * 10) || []).map((c) => (
                 <tr
                   key={c.id}
                   onClick={() => setDetailModalContactId(c.id)}
@@ -403,7 +409,7 @@ export const ContactsPage: React.FC = () => {
       ) : (
         /* Kanban View */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {contacts.map((c) => (
+          {(contacts?.slice((currentPage - 1) * 10, currentPage * 10) || []).map((c) => (
             <div
               key={c.id}
               onClick={() => setDetailModalContactId(c.id)}
@@ -490,6 +496,14 @@ export const ContactsPage: React.FC = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {contacts && contacts.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalItems={contacts.length}
+          onPageChange={setCurrentPage}
+        />
       )}
 
       {/* Create Contact Modal */}

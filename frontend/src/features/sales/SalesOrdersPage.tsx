@@ -17,6 +17,7 @@ import {
   Receipt
 } from 'lucide-react';
 import { useDebounce } from '../../hooks/useDebounce';
+import { Pagination } from '../../components/ui/Pagination';
 
 export const SalesOrdersPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -26,6 +27,11 @@ export const SalesOrdersPage: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [detailSOId, setDetailSOId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, statusFilter]);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -309,7 +315,7 @@ export const SalesOrdersPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {sos.map((so) => (
+                {(sos?.slice((currentPage - 1) * 10, currentPage * 10) || []).map((so) => (
                   <tr
                     key={so.id}
                     onClick={() => setDetailSOId(so.id)}
@@ -347,6 +353,13 @@ export const SalesOrdersPage: React.FC = () => {
               </tbody>
             </table>
           </div>
+        )}
+        {sos && sos.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={sos.length}
+            onPageChange={setCurrentPage}
+          />
         )}
       </div>
 

@@ -20,6 +20,7 @@ import {
   ArrowRight 
 } from 'lucide-react';
 import { useDebounce } from '../../hooks/useDebounce';
+import { Pagination } from '../../components/ui/Pagination';
 
 export const BudgetsPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -27,6 +28,12 @@ export const BudgetsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 350);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, statusFilter, viewMode]);
+
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [reviseModalOpen, setReviseModalOpen] = useState(false);
   const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
@@ -287,7 +294,7 @@ export const BudgetsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {budgets.map((b) => {
+                {(budgets?.slice((currentPage - 1) * 10, currentPage * 10) || []).map((b) => {
                   const pct = Number(b.achievedPercentage || 0);
                   const isOver = pct > 100;
 
@@ -367,7 +374,7 @@ export const BudgetsPage: React.FC = () => {
       ) : (
         /* Kanban View */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {budgets.map((b) => {
+          {(budgets?.slice((currentPage - 1) * 10, currentPage * 10) || []).map((b) => {
             const pct = Number(b.achievedPercentage || 0);
             const isOver = pct > 100;
 
@@ -461,6 +468,14 @@ export const BudgetsPage: React.FC = () => {
             );
           })}
         </div>
+      )}
+
+      {budgets && budgets.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalItems={budgets.length}
+          onPageChange={setCurrentPage}
+        />
       )}
 
       {/* Budget Detail Modal */}

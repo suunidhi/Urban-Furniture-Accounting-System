@@ -14,11 +14,13 @@ import {
   User as UserIcon,
   X
 } from 'lucide-react';
+import { Pagination } from '../../components/ui/Pagination';
 
 export const UserManagementPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -170,7 +172,7 @@ export const UserManagementPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                users.map((u) => (
+                (users?.slice((currentPage - 1) * 10, currentPage * 10) || []).map((u) => (
                   <tr key={u.id} className="hover:bg-gray-50/80 transition-colors">
                     <td className="py-3 px-4 font-medium text-gray-900 flex items-center gap-2.5">
                       <div className="w-7 h-7 rounded-full bg-[#F3EAF0] text-[#714B67] flex items-center justify-center font-bold text-xs border border-[#714B67]/20">
@@ -213,6 +215,13 @@ export const UserManagementPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+        {users && users.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={users.length}
+            onPageChange={setCurrentPage}
+          />
+        )}
       </div>
 
       {/* Create User Modal - Exactly as Mockup Wireframe */}

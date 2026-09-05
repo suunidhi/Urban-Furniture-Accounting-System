@@ -13,11 +13,17 @@ import {
   AlertTriangle 
 } from 'lucide-react';
 import { useDebounce } from '../../hooks/useDebounce';
+import { Pagination } from '../../components/ui/Pagination';
 
 export const ProductStockPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 350);
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, categoryFilter]);
 
   const { data: stockData, isLoading } = useQuery({
     queryKey: ['product-stock-summary'],
@@ -162,7 +168,7 @@ export const ProductStockPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredProducts.map((p: any) => {
+                {filteredProducts.slice((currentPage - 1) * 10, currentPage * 10).map((p: any) => {
                   const marginPct = p.salesPrice > 0 ? (((p.salesPrice - p.costPrice) / p.salesPrice) * 100).toFixed(0) : '0';
                   return (
                     <tr key={p.id} className="hover:bg-gray-50 transition-colors">
@@ -205,6 +211,13 @@ export const ProductStockPage: React.FC = () => {
               </tbody>
             </table>
           </div>
+        )}
+        {filteredProducts && filteredProducts.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredProducts.length}
+            onPageChange={setCurrentPage}
+          />
         )}
       </div>
     </div>

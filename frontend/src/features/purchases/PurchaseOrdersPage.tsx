@@ -16,6 +16,7 @@ import {
   Check
 } from 'lucide-react';
 import { useDebounce } from '../../hooks/useDebounce';
+import { Pagination } from '../../components/ui/Pagination';
 
 export const PurchaseOrdersPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -24,6 +25,11 @@ export const PurchaseOrdersPage: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [detailPOId, setDetailPOId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch]);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -264,7 +270,7 @@ export const PurchaseOrdersPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                pos.map((po) => (
+                (pos?.slice((currentPage - 1) * 10, currentPage * 10) || []).map((po) => (
                   <tr
                     key={po.id}
                     onClick={() => setDetailPOId(po.id)}
@@ -297,6 +303,13 @@ export const PurchaseOrdersPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+        {pos && pos.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={pos.length}
+            onPageChange={setCurrentPage}
+          />
+        )}
       </div>
 
       {/* New Purchase Order Modal */}

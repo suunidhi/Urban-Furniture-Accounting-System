@@ -17,12 +17,19 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { useDebounce } from '../../hooks/useDebounce';
+import { Pagination } from '../../components/ui/Pagination';
 
 export const JournalEntriesPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 350);
   const [journalFilter, setJournalFilter] = useState<number | 'ALL'>('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, journalFilter]);
+
   const [detailEntryId, setDetailEntryId] = useState<number | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -269,7 +276,8 @@ export const JournalEntriesPage: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-sm">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 text-gray-600 text-xs font-semibold uppercase tracking-wider">
@@ -286,7 +294,7 @@ export const JournalEntriesPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {entries.map((entry) => {
+                {(entries?.slice((currentPage - 1) * 10, currentPage * 10) || []).map((entry) => {
                   const partnerName =
                     entry.vendorBill?.vendor?.name ||
                     entry.customerInvoice?.customer?.name ||
@@ -355,9 +363,17 @@ export const JournalEntriesPage: React.FC = () => {
                     </tr>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
+                </tbody>
+              </table>
+            </div>
+            {entries && (
+              <Pagination
+                currentPage={currentPage}
+                totalItems={entries.length}
+                onPageChange={setCurrentPage}
+              />
+            )}
+          </>
         )}
       </div>
 

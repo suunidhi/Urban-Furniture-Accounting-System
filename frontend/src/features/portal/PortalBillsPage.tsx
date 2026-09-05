@@ -4,9 +4,11 @@ import api from '../../services/api';
 import { VendorBill } from '../../types';
 import { Receipt, CheckCircle2, Clock, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { Pagination } from '../../components/ui/Pagination';
 
 export const PortalBillsPage: React.FC = () => {
   const { user } = useAuth();
+  const [currentPage, setCurrentPage] = React.useState(1);
 
   // Fetch Vendor Bills for logged-in contact user
   const { data: bills, isLoading } = useQuery<VendorBill[]>({
@@ -68,7 +70,7 @@ export const PortalBillsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {bills.map((bill) => (
+                {(bills?.slice((currentPage - 1) * 10, currentPage * 10) || []).map((bill) => (
                   <tr key={bill.id} className="hover:bg-gray-50/70 transition-colors">
                     <td className="py-4 px-4 font-semibold text-[#714B67]">
                       {bill.billNumber}
@@ -106,6 +108,13 @@ export const PortalBillsPage: React.FC = () => {
               </tbody>
             </table>
           </div>
+        )}
+        {bills && bills.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={bills.length}
+            onPageChange={setCurrentPage}
+          />
         )}
       </div>
     </div>

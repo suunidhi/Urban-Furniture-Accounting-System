@@ -28,6 +28,7 @@ import {
   Layers 
 } from 'lucide-react';
 import { useDebounce } from '../../hooks/useDebounce';
+import { Pagination } from '../../components/ui/Pagination';
 
 export const VendorBillsPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -38,6 +39,11 @@ export const VendorBillsPage: React.FC = () => {
   const [detailBillId, setDetailBillId] = useState<number | null>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, statusFilter]);
 
   // Direct Bill Form State
   const [formData, setFormData] = useState({
@@ -407,7 +413,7 @@ export const VendorBillsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {bills.map((bill) => (
+                {(bills?.slice((currentPage - 1) * 10, currentPage * 10) || []).map((bill) => (
                   <tr
                     key={bill.id}
                     onClick={() => setDetailBillId(bill.id)}
@@ -454,6 +460,13 @@ export const VendorBillsPage: React.FC = () => {
               </tbody>
             </table>
           </div>
+        )}
+        {bills && bills.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={bills.length}
+            onPageChange={setCurrentPage}
+          />
         )}
       </div>
 

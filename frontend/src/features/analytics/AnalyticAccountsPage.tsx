@@ -3,12 +3,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { AnalyticAccount, AnalyticType } from '../../types';
 import { FolderKanban, Plus, LayoutList, LayoutGrid, CheckCircle2, X, AlertCircle } from 'lucide-react';
+import { Pagination } from '../../components/ui/Pagination';
 
 export const AnalyticAccountsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [modalOpen, setModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [viewMode]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -117,7 +123,7 @@ export const AnalyticAccountsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E7EB]">
-              {analytics?.map((an) => (
+              {(analytics?.slice((currentPage - 1) * 10, currentPage * 10) || []).map((an) => (
                 <tr key={an.id} className="hover:bg-gray-50">
                   <td className="py-3 px-4 font-semibold text-gray-900 flex items-center gap-2">
                     <FolderKanban className="w-4 h-4 text-[#714B67]" />
@@ -148,7 +154,7 @@ export const AnalyticAccountsPage: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {analytics?.map((an) => (
+          {(analytics?.slice((currentPage - 1) * 10, currentPage * 10) || []).map((an) => (
             <div
               key={an.id}
               className="bg-white p-5 rounded-lg border border-[#E5E7EB] shadow-sm hover:border-[#714B67]/40 transition-all flex flex-col justify-between"
@@ -172,6 +178,14 @@ export const AnalyticAccountsPage: React.FC = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {analytics && analytics.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalItems={analytics.length}
+          onPageChange={setCurrentPage}
+        />
       )}
 
       {/* Modal */}
