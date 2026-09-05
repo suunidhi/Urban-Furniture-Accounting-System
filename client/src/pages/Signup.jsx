@@ -1,166 +1,130 @@
-import React, { useState, useContext } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
-import { AuthContext } from '../context/AuthContext';
-import urbanLogo from '../assets/urban_logo.png';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
+import api from '../utils/api';
 
-const Signup = () => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState('admin');
-  const [error, setError] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const { login } = useContext(AuthContext);
+function PasswordStrength({ password }) {
+  const checks = [
+    { label: 'More than 8 characters', ok: password.length > 8 },
+    { label: 'One uppercase letter', ok: /[A-Z]/.test(password) },
+    { label: 'One lowercase letter', ok: /[a-z]/.test(password) },
+    { label: 'One special character', ok: /[^A-Za-z0-9]/.test(password) },
+  ];
+  if (!password) return null;
+  return (
+    <div className="mt-2 space-y-1">
+      {checks.map(c => (
+        <div key={c.label} className="flex items-center gap-1.5 text-xs">
+          {c.ok ? <CheckCircle size={12} className="text-green-400" /> : <XCircle size={12} className="text-white/30" />}
+          <span className={c.ok ? 'text-green-400' : 'text-white/30'}>{c.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function SignUp() {
   const navigate = useNavigate();
+  const [form, setForm] = useState({ login_id: '', email: '', password: '', confirm_password: '' });
+  const [showPass, setShowPass] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSignup = async (e) => {
+  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(''); // clear previous errors
-    
-    if (password !== confirmPassword) {
-      return setError('Passwords do not match. Please ensure both passwords are identical.');
+    setError('');
+    if (form.password !== form.confirm_password) {
+      return setError('Passwords do not match');
     }
-    
+    setLoading(true);
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/signup', { name, email, password, role });
-      login(response.data.token, response.data.user);
-      navigate('/dashboard');
+      await api.post('/auth/signup', form);
+      navigate('/login', { state: { message: 'Account created! Please sign in.' } });
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || 'Server error occurred during signup');
+      setError(err.response?.data?.message || 'Signup failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const EyeIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-500 hover:text-gray-700">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-    </svg>
-  );
-
-  const EyeSlashIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-500 hover:text-gray-700">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
-    </svg>
+  const inputRow = (label, key, type = 'text', extra = null) => (
+    <div className="flex items-center gap-3 border-b border-white/20 pb-2 focus-within:border-primary/70 transition-colors">
+      <label className="text-white/60 text-sm whitespace-nowrap w-36">{label} -</label>
+      <input
+        type={type === 'password' ? (key === 'password' ? (showPass ? 'text' : 'password') : (showConfirm ? 'text' : 'password')) : type}
+        value={form[key]}
+        onChange={set(key)}
+        required
+        className="flex-1 bg-transparent text-white text-sm outline-none placeholder-white/20 py-1"
+        placeholder={label.toLowerCase()}
+      />
+      {extra}
+    </div>
   );
 
   return (
-    <div className="min-h-screen bg-odoo-bg flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <img src={urbanLogo} alt="Urban Furniture" className="mx-auto h-16 w-auto" />
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-odoo-text">
-          Create a new account
-        </h2>
+    <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center p-4">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/20 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-secondary/15 rounded-full blur-3xl" />
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-odoo-border">
-          <form className="space-y-6" onSubmit={handleSignup}>
-            {error && <div className="text-red-600 text-sm font-medium bg-red-50 p-3 rounded border border-red-200">{error}</div>}
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Full Name</label>
-              <div className="mt-1">
-                <input
-                  type="text"
-                  required
-                  className="appearance-none block w-full px-3 py-2 border border-odoo-border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-odoo-primary focus:border-odoo-primary sm:text-sm"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                />
-              </div>
-            </div>
+      <div className="relative w-full max-w-sm">
+        <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl shadow-2xl p-8 space-y-6">
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Email address</label>
-              <div className="mt-1">
-                <input
-                  type="email"
-                  required
-                  className="appearance-none block w-full px-3 py-2 border border-odoo-border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-odoo-primary focus:border-odoo-primary sm:text-sm"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Password</label>
-              <div className="mt-1 relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  className="appearance-none block w-full px-3 py-2 border border-odoo-border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-odoo-primary focus:border-odoo-primary sm:text-sm pr-10"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                />
-                <button 
-                  type="button" 
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center" 
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeSlashIcon /> : <EyeIcon />}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Re-enter Password</label>
-              <div className="mt-1 relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  className="appearance-none block w-full px-3 py-2 border border-odoo-border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-odoo-primary focus:border-odoo-primary sm:text-sm pr-10"
-                  value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
-                />
-                <button 
-                  type="button" 
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center" 
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeSlashIcon /> : <EyeIcon />}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Role</label>
-              <div className="mt-1">
-                <select
-                  value={role}
-                  onChange={e => setRole(e.target.value)}
-                  className="block w-full px-3 py-2 border border-odoo-border rounded-md shadow-sm focus:outline-none focus:ring-odoo-primary focus:border-odoo-primary sm:text-sm bg-white"
-                >
-                  <option value="admin">Admin (Business Owner)</option>
-                  <option value="accountant">Invoicing User (Accountant)</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <button
-                type="submit"
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-odoo-primary hover:bg-odoo-primaryHover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-odoo-primary transition-colors"
-              >
-                Sign up
-              </button>
-            </div>
-          </form>
-
-          <div className="mt-6">
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">
-                Already have an account? <Link to="/login" className="text-odoo-secondary hover:text-odoo-secondaryHover">Sign in</Link>
-              </span>
+          {/* Logo */}
+          <div className="flex justify-center">
+            <div className="bg-[#2a2a2a] border border-white/10 rounded-xl px-8 py-4 text-center">
+              <p className="text-white font-bold text-lg tracking-widest">URBAN</p>
+              <p className="text-white/40 text-[10px] tracking-widest -mt-0.5">FURNITURE ERP</p>
             </div>
           </div>
+
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-2.5 rounded-lg text-center">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {inputRow('Enter Login Id', 'login_id')}
+            {inputRow('Enter Email Id', 'email', 'email')}
+            <div>
+              {inputRow('Enter Password', 'password', 'password',
+                <button type="button" onClick={() => setShowPass(!showPass)} className="text-white/30 hover:text-white/60 transition-colors">
+                  {showPass ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              )}
+              <PasswordStrength password={form.password} />
+            </div>
+            {inputRow('Re-Enter Password', 'confirm_password', 'password',
+              <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="text-white/30 hover:text-white/60 transition-colors">
+                {showConfirm ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            )}
+
+            <div className="pt-2">
+              <button
+                id="signup-btn"
+                type="submit"
+                disabled={loading}
+                className="w-full bg-[#2a2a2a] hover:bg-primary/80 border border-white/20 hover:border-primary text-white font-bold py-3 rounded-xl text-sm tracking-widest transition-all duration-200 disabled:opacity-50"
+              >
+                {loading ? 'CREATING ACCOUNT...' : 'SIGN UP'}
+              </button>
+            </div>
+
+            <div className="text-center text-white/40 text-xs space-x-2">
+              <Link to="/forgot-password" className="hover:text-white/70 transition-colors">Forgot Password</Link>
+              <span>|</span>
+              <Link to="/login" className="hover:text-white/70 transition-colors">Sign In</Link>
+            </div>
+          </form>
         </div>
       </div>
     </div>
   );
-};
-
-export default Signup;
+}
