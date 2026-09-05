@@ -1,0 +1,503 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum Role {
+  admin
+  accountant
+  contact
+}
+
+enum ContactType {
+  customer
+  vendor
+  both
+}
+
+enum Status {
+  active
+  archived
+}
+
+enum ProductType {
+  goods
+  service
+  combo
+}
+
+enum AccountType {
+  asset
+  liability
+  expense
+  income
+  capital
+}
+
+enum JournalType {
+  sale
+  purchase
+  bank
+  cash
+  general
+}
+
+enum AnalyticAccountType {
+  income
+  expense
+}
+
+enum SourceType {
+  vendor_bill
+  customer_invoice
+  payment
+  manual
+}
+
+enum JournalEntryState {
+  draft
+  posted
+}
+
+enum DocumentStatus {
+  draft
+  confirmed
+  billed
+  invoiced
+  posted
+  paid
+  partly_paid
+  cancelled
+}
+
+enum PaymentType {
+  customer
+  vendor
+}
+
+enum PaymentMethod {
+  cash
+  bank
+}
+
+enum PaymentStatus {
+  draft
+  posted
+}
+
+enum BudgetStatus {
+  draft
+  confirmed
+  revised
+  cancelled
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  name          String
+  email         String    @unique
+  login_id      String    @unique @db.VarChar(12)
+  password_hash String
+  role          Role      @default(accountant)
+  contact_id    Int?      @unique
+  reset_token   String?
+  reset_expires DateTime?
+  is_active     Boolean   @default(true)
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  contact             Contact?          @relation("UserContact", fields: [contact_id], references: [id])
+  createdJournalEntries JournalEntry[]    @relation("CreatedJournalEntries")
+  createdPurchaseOrders PurchaseOrder[]   @relation("CreatedPurchaseOrders")
+  createdVendorBills    VendorBill[]      @relation("CreatedVendorBills")
+  createdSalesOrders    SalesOrder[]      @relation("CreatedSalesOrders")
+  createdInvoices       CustomerInvoice[] @relation("CreatedInvoices")
+  createdPayments       Payment[]         @relation("CreatedPayments")
+  managedBudgets        Budget[]          @relation("ManagedBudgets")
+  createdBudgets        Budget[]          @relation("CreatedBudgets")
+
+  @@index([email])
+  @@index([role])
+}
+
+model Contact {
+  id            Int         @id @default(autoincrement())
+  name          String
+  type          ContactType
+  email         String?
+  mobile        String?
+  address_line  String?     @db.VarChar(500)
+  city          String?
+  state         String?
+  pincode       String?
+  profile_image String?     @db.VarChar(500)
+  user_id       Int?        @unique
+  status        Status      @default(active)
+  created_at    DateTime    @default(now())
+  updated_at    DateTime    @updatedAt
+
+  user             User?             @relation("UserContact")
+  purchaseOrders   PurchaseOrder[]
+  vendorBills      VendorBill[]
+  salesOrders      SalesOrder[]
+  customerInvoices CustomerInvoice[]
+  payments         Payment[]
+
+  @@index([type])
+  @@index([status])
+}
+
+model ProductCategory {
+  id         Int       @id @default(autoincrement())
+  name       String    @unique
+  created_at DateTime  @default(now())
+  products   Product[]
+}
+
+model Product {
+  id          Int          @id @default(autoincrement())
+  name        String
+  image       String?      @db.VarChar(500)
+  type        ProductType  @default(goods)
+  sales_price Decimal      @default(0.00) @db.Decimal(15, 2)
+  cost_price  Decimal      @default(0.00) @db.Decimal(15, 2)
+  category_id Int?
+  status      Status       @default(active)
+  created_at  DateTime     @default(now())
+  updated_at  DateTime     @updatedAt
+
+  category             ProductCategory?      @relation(fields: [category_id], references: [id])
+  purchaseOrderLines   PurchaseOrderLine[]
+  vendorBillLines      VendorBillLine[]
+  salesOrderLines      SalesOrderLine[]
+  customerInvoiceLines CustomerInvoiceLine[]
+
+  @@index([type])
+  @@index([status])
+}
+
+model ChartOfAccount {
+  id         Int         @id @default(autoincrement())
+  code       String      @unique @db.VarChar(20)
+  name       String
+  type       AccountType
+  parent_id  Int?
+  is_active  Boolean     @default(true)
+  created_at DateTime    @default(now())
+
+  parent               ChartOfAccount?  @relation("AccountHierarchy", fields: [parent_id], references: [id])
+  children             ChartOfAccount[] @relation("AccountHierarchy")
+  defaultDebitJournals Journal[]        @relation("JournalDebitAccount")
+  defaultCreditJournals Journal[]       @relation("JournalCreditAccount")
+  journalItems         JournalItem[]
+
+  @@index([type])
+  @@index([is_active])
+}
+
+model Journal {
+  id                        Int         @id @default(autoincrement())
+  name                      String
+  type                      JournalType @default(general)
+  default_debit_account_id  Int?
+  default_credit_account_id Int?
+  is_active                 Boolean     @default(true)
+  created_at                DateTime    @default(now())
+
+  defaultDebitAccount  ChartOfAccount? @relation("JournalDebitAccount", fields: [default_debit_account_id], references: [id])
+  defaultCreditAccount ChartOfAccount? @relation("JournalCreditAccount", fields: [default_credit_account_id], references: [id])
+  journalEntries       JournalEntry[]
+}
+
+model AnalyticAccount {
+  id         Int                 @id @default(autoincrement())
+  name       String
+  type       AnalyticAccountType
+  is_active  Boolean             @default(true)
+  created_at DateTime            @default(now())
+
+  journalItems JournalItem[]
+  budgets      Budget[]
+}
+
+model JournalEntry {
+  id           Int               @id @default(autoincrement())
+  journal_id   Int?
+  date         DateTime          @db.Date
+  reference    String?
+  source_type  SourceType        @default(manual)
+  source_id    Int?
+  state        JournalEntryState @default(draft)
+  total_debit  Decimal           @default(0.00) @db.Decimal(15, 2)
+  total_credit Decimal           @default(0.00) @db.Decimal(15, 2)
+  created_by   Int?
+  created_at   DateTime          @default(now())
+  updated_at   DateTime          @updatedAt
+
+  journal          Journal?          @relation(fields: [journal_id], references: [id])
+  creator          User?             @relation("CreatedJournalEntries", fields: [created_by], references: [id])
+  items            JournalItem[]
+  vendorBills      VendorBill[]
+  customerInvoices CustomerInvoice[]
+  payments         Payment[]
+
+  @@index([date])
+  @@index([journal_id])
+  @@index([source_type, source_id])
+  @@index([state])
+}
+
+model JournalItem {
+  id                  Int      @id @default(autoincrement())
+  journal_entry_id    Int
+  account_id          Int
+  analytic_account_id Int?
+  debit               Decimal  @default(0.00) @db.Decimal(15, 2)
+  credit              Decimal  @default(0.00) @db.Decimal(15, 2)
+  description         String?  @db.VarChar(500)
+  created_at          DateTime @default(now())
+
+  journalEntry    JournalEntry     @relation(fields: [journal_entry_id], references: [id], onDelete: Cascade)
+  account         ChartOfAccount   @relation(fields: [account_id], references: [id], onDelete: Restrict)
+  analyticAccount AnalyticAccount? @relation(fields: [analytic_account_id], references: [id], onDelete: SetNull)
+
+  @@index([journal_entry_id])
+  @@index([account_id])
+  @@index([analytic_account_id])
+}
+
+model PurchaseOrder {
+  id         Int            @id @default(autoincrement())
+  po_number  String         @unique @db.VarChar(50)
+  vendor_id  Int
+  date       DateTime       @db.Date
+  status     DocumentStatus @default(draft)
+  total      Decimal        @default(0.00) @db.Decimal(15, 2)
+  notes      String?        @db.Text
+  created_by Int?
+  created_at DateTime       @default(now())
+  updated_at DateTime       @updatedAt
+
+  vendor      Contact             @relation(fields: [vendor_id], references: [id], onDelete: Restrict)
+  creator     User?               @relation("CreatedPurchaseOrders", fields: [created_by], references: [id], onDelete: SetNull)
+  lines       PurchaseOrderLine[]
+  vendorBills VendorBill[]
+
+  @@index([vendor_id])
+  @@index([status])
+}
+
+model PurchaseOrderLine {
+  id          Int     @id @default(autoincrement())
+  po_id       Int
+  product_id  Int?
+  description String? @db.VarChar(500)
+  quantity    Decimal @default(1) @db.Decimal(15, 2)
+  unit_price  Decimal @default(0.00) @db.Decimal(15, 2)
+  subtotal    Decimal @default(0.00) @db.Decimal(15, 2)
+
+  purchaseOrder PurchaseOrder @relation(fields: [po_id], references: [id], onDelete: Cascade)
+  product       Product?      @relation(fields: [product_id], references: [id], onDelete: SetNull)
+
+  @@index([po_id])
+}
+
+model VendorBill {
+  id                 Int            @id @default(autoincrement())
+  bill_number        String         @unique @db.VarChar(50)
+  po_id              Int?
+  vendor_id          Int
+  invoice_date       DateTime       @db.Date
+  due_date           DateTime?      @db.Date
+  total              Decimal        @default(0.00) @db.Decimal(15, 2)
+  paid_amount        Decimal        @default(0.00) @db.Decimal(15, 2)
+  outstanding_amount Decimal        @default(0.00) @db.Decimal(15, 2)
+  status             DocumentStatus @default(draft)
+  journal_entry_id   Int?
+  created_by         Int?
+  created_at         DateTime       @default(now())
+  updated_at         DateTime       @updatedAt
+
+  purchaseOrder PurchaseOrder?      @relation(fields: [po_id], references: [id], onDelete: SetNull)
+  vendor        Contact             @relation(fields: [vendor_id], references: [id], onDelete: Restrict)
+  journalEntry  JournalEntry?       @relation(fields: [journal_entry_id], references: [id], onDelete: SetNull)
+  creator       User?               @relation("CreatedVendorBills", fields: [created_by], references: [id], onDelete: SetNull)
+  lines         VendorBillLine[]
+  allocations   PaymentAllocation[]
+
+  @@index([vendor_id])
+  @@index([status])
+}
+
+model VendorBillLine {
+  id          Int     @id @default(autoincrement())
+  bill_id     Int
+  product_id  Int?
+  description String? @db.VarChar(500)
+  quantity    Decimal @default(1) @db.Decimal(15, 2)
+  unit_price  Decimal @default(0.00) @db.Decimal(15, 2)
+  subtotal    Decimal @default(0.00) @db.Decimal(15, 2)
+
+  vendorBill VendorBill @relation(fields: [bill_id], references: [id], onDelete: Cascade)
+  product    Product?   @relation(fields: [product_id], references: [id], onDelete: SetNull)
+
+  @@index([bill_id])
+}
+
+model SalesOrder {
+  id          Int            @id @default(autoincrement())
+  so_number   String         @unique @db.VarChar(50)
+  customer_id Int
+  date        DateTime       @db.Date
+  status      DocumentStatus @default(draft)
+  subtotal    Decimal        @default(0.00) @db.Decimal(15, 2)
+  tax_amount  Decimal        @default(0.00) @db.Decimal(15, 2)
+  total       Decimal        @default(0.00) @db.Decimal(15, 2)
+  notes       String?        @db.Text
+  created_by  Int?
+  created_at  DateTime       @default(now())
+  updated_at  DateTime       @updatedAt
+
+  customer         Contact            @relation(fields: [customer_id], references: [id], onDelete: Restrict)
+  creator          User?              @relation("CreatedSalesOrders", fields: [created_by], references: [id], onDelete: SetNull)
+  lines            SalesOrderLine[]
+  customerInvoices CustomerInvoice[]
+
+  @@index([customer_id])
+  @@index([status])
+}
+
+model SalesOrderLine {
+  id          Int     @id @default(autoincrement())
+  so_id       Int
+  product_id  Int?
+  description String? @db.VarChar(500)
+  quantity    Decimal @default(1) @db.Decimal(15, 2)
+  unit_price  Decimal @default(0.00) @db.Decimal(15, 2)
+  tax_rate    Decimal @default(0.00) @db.Decimal(5, 2)
+  subtotal    Decimal @default(0.00) @db.Decimal(15, 2)
+  tax_amount  Decimal @default(0.00) @db.Decimal(15, 2)
+  total       Decimal @default(0.00) @db.Decimal(15, 2)
+
+  salesOrder SalesOrder @relation(fields: [so_id], references: [id], onDelete: Cascade)
+  product    Product?   @relation(fields: [product_id], references: [id], onDelete: SetNull)
+
+  @@index([so_id])
+}
+
+model CustomerInvoice {
+  id                 Int            @id @default(autoincrement())
+  invoice_number     String         @unique @db.VarChar(50)
+  so_id              Int?
+  customer_id        Int
+  invoice_date       DateTime       @db.Date
+  due_date           DateTime?      @db.Date
+  subtotal           Decimal        @default(0.00) @db.Decimal(15, 2)
+  tax_amount         Decimal        @default(0.00) @db.Decimal(15, 2)
+  total              Decimal        @default(0.00) @db.Decimal(15, 2)
+  paid_amount        Decimal        @default(0.00) @db.Decimal(15, 2)
+  outstanding_amount Decimal        @default(0.00) @db.Decimal(15, 2)
+  status             DocumentStatus @default(draft)
+  journal_entry_id   Int?
+  created_by         Int?
+  created_at         DateTime       @default(now())
+  updated_at         DateTime       @updatedAt
+
+  salesOrder   SalesOrder?           @relation(fields: [so_id], references: [id], onDelete: SetNull)
+  customer     Contact               @relation(fields: [customer_id], references: [id], onDelete: Restrict)
+  journalEntry JournalEntry?         @relation(fields: [journal_entry_id], references: [id], onDelete: SetNull)
+  creator      User?                 @relation("CreatedInvoices", fields: [created_by], references: [id], onDelete: SetNull)
+  lines        CustomerInvoiceLine[]
+  allocations  PaymentAllocation[]
+
+  @@index([customer_id])
+  @@index([status])
+}
+
+model CustomerInvoiceLine {
+  id          Int     @id @default(autoincrement())
+  invoice_id  Int
+  product_id  Int?
+  description String? @db.VarChar(500)
+  quantity    Decimal @default(1) @db.Decimal(15, 2)
+  unit_price  Decimal @default(0.00) @db.Decimal(15, 2)
+  tax_rate    Decimal @default(0.00) @db.Decimal(5, 2)
+  subtotal    Decimal @default(0.00) @db.Decimal(15, 2)
+  tax_amount  Decimal @default(0.00) @db.Decimal(15, 2)
+  total       Decimal @default(0.00) @db.Decimal(15, 2)
+
+  customerInvoice CustomerInvoice @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
+  product         Product?        @relation(fields: [product_id], references: [id], onDelete: SetNull)
+
+  @@index([invoice_id])
+}
+
+model Payment {
+  id               Int           @id @default(autoincrement())
+  payment_number   String        @unique @db.VarChar(50)
+  type             PaymentType
+  partner_id       Int
+  amount           Decimal       @db.Decimal(15, 2)
+  payment_method   PaymentMethod
+  date             DateTime      @db.Date
+  reference        String?
+  journal_entry_id Int?
+  status           PaymentStatus @default(draft)
+  created_by       Int?
+  created_at       DateTime      @default(now())
+
+  partner      Contact             @relation(fields: [partner_id], references: [id], onDelete: Restrict)
+  journalEntry JournalEntry?       @relation(fields: [journal_entry_id], references: [id], onDelete: SetNull)
+  creator      User?               @relation("CreatedPayments", fields: [created_by], references: [id], onDelete: SetNull)
+  allocations  PaymentAllocation[]
+
+  @@index([type])
+  @@index([partner_id])
+  @@index([payment_method])
+}
+
+model PaymentAllocation {
+  id               Int     @id @default(autoincrement())
+  payment_id       Int
+  invoice_id       Int?
+  bill_id          Int?
+  allocated_amount Decimal @db.Decimal(15, 2)
+
+  payment         Payment          @relation(fields: [payment_id], references: [id], onDelete: Cascade)
+  customerInvoice CustomerInvoice? @relation(fields: [invoice_id], references: [id], onDelete: SetNull)
+  vendorBill      VendorBill?      @relation(fields: [bill_id], references: [id], onDelete: SetNull)
+
+  @@index([payment_id])
+  @@index([invoice_id])
+  @@index([bill_id])
+}
+
+model Budget {
+  id                    Int          @id @default(autoincrement())
+  name                  String
+  period_start          DateTime     @db.Date
+  period_end            DateTime     @db.Date
+  responsible_person_id Int?
+  analytic_account_id   Int?
+  planned_amount        Decimal      @default(0.00) @db.Decimal(15, 2)
+  committed_amount      Decimal      @default(0.00) @db.Decimal(15, 2)
+  achieved_amount       Decimal      @default(0.00) @db.Decimal(15, 2)
+  status                BudgetStatus @default(draft)
+  notes                 String?      @db.Text
+  created_by            Int?
+  created_at            DateTime     @default(now())
+  updated_at            DateTime     @updatedAt
+
+  responsiblePerson User?            @relation("ManagedBudgets", fields: [responsible_person_id], references: [id], onDelete: SetNull)
+  analyticAccount   AnalyticAccount? @relation(fields: [analytic_account_id], references: [id], onDelete: SetNull)
+  creator           User?            @relation("CreatedBudgets", fields: [created_by], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([analytic_account_id])
+  @@index([period_start, period_end])
+}
