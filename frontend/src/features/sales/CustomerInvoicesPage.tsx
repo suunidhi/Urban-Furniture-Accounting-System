@@ -26,10 +26,12 @@ import {
   Printer, 
   Download 
 } from 'lucide-react';
+import { useDebounce } from '../../hooks/useDebounce';
 
 export const CustomerInvoicesPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 350);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [modalOpen, setModalOpen] = useState(false);
   const [detailInvoiceId, setDetailInvoiceId] = useState<number | null>(null);
@@ -69,11 +71,11 @@ export const CustomerInvoicesPage: React.FC = () => {
 
   // Fetch Invoices
   const { data: invoices, isLoading } = useQuery<CustomerInvoice[]>({
-    queryKey: ['customer-invoices', search, statusFilter],
+    queryKey: ['customer-invoices', debouncedSearch, statusFilter],
     queryFn: async () => {
       const res = await api.get('/invoices', {
         params: {
-          search: search || undefined,
+          search: debouncedSearch || undefined,
           status: statusFilter !== 'ALL' ? statusFilter : undefined,
         },
       });

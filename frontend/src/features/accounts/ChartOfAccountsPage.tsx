@@ -14,10 +14,12 @@ import {
   ArrowUpRight,
   ArrowDownRight
 } from 'lucide-react';
+import { useDebounce } from '../../hooks/useDebounce';
 
 export const ChartOfAccountsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 350);
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [modalOpen, setModalOpen] = useState(false);
   const [ledgerAccountId, setLedgerAccountId] = useState<number | null>(null);
@@ -99,8 +101,8 @@ export const ChartOfAccountsPage: React.FC = () => {
   const filteredAccounts = accounts?.filter((acc) => {
     const matchesType = typeFilter === 'ALL' || acc.type === typeFilter;
     const matchesSearch =
-      acc.name.toLowerCase().includes(search.toLowerCase()) ||
-      acc.code.toLowerCase().includes(search.toLowerCase());
+      acc.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      acc.code.toLowerCase().includes(debouncedSearch.toLowerCase());
     return matchesType && matchesSearch;
   });
 

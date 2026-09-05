@@ -16,10 +16,12 @@ import {
   UserCheck,
   Receipt
 } from 'lucide-react';
+import { useDebounce } from '../../hooks/useDebounce';
 
 export const SalesOrdersPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 350);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [modalOpen, setModalOpen] = useState(false);
   const [detailSOId, setDetailSOId] = useState<number | null>(null);
@@ -37,11 +39,11 @@ export const SalesOrdersPage: React.FC = () => {
 
   // Fetch SOs
   const { data: sos, isLoading } = useQuery<SalesOrder[]>({
-    queryKey: ['sales-orders', search, statusFilter],
+    queryKey: ['sales-orders', debouncedSearch, statusFilter],
     queryFn: async () => {
       const res = await api.get('/sales', { 
         params: { 
-          search: search || undefined,
+          search: debouncedSearch || undefined,
           status: statusFilter !== 'ALL' ? statusFilter : undefined 
         } 
       });

@@ -24,12 +24,14 @@ import {
   RotateCcw,
   DollarSign
 } from 'lucide-react';
+import { useDebounce } from '../../hooks/useDebounce';
 
 export const ProductsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { isAdmin } = useAuth();
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 350);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'ARCHIVED'>('ACTIVE');
   const [modalOpen, setModalOpen] = useState(false);
@@ -84,12 +86,12 @@ export const ProductsPage: React.FC = () => {
 
   // Fetch products
   const { data: products, isLoading } = useQuery<Product[]>({
-    queryKey: ['products', selectedCategory, search, statusFilter],
+    queryKey: ['products', selectedCategory, debouncedSearch, statusFilter],
     queryFn: async () => {
       const res = await api.get('/products', {
         params: {
           categoryId: selectedCategory !== 'ALL' ? selectedCategory : undefined,
-          search: search || undefined,
+          search: debouncedSearch || undefined,
           status: statusFilter !== 'ALL' ? statusFilter : undefined,
         },
       });

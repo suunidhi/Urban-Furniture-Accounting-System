@@ -12,9 +12,11 @@ import {
   CheckCircle2, 
   AlertTriangle 
 } from 'lucide-react';
+import { useDebounce } from '../../hooks/useDebounce';
 
 export const ProductStockPage: React.FC = () => {
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 350);
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
 
   const { data: stockData, isLoading } = useQuery({
@@ -33,8 +35,8 @@ export const ProductStockPage: React.FC = () => {
   };
 
   const filteredProducts = products.filter((p: any) => {
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-                          p.category.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = p.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+                          p.category.toLowerCase().includes(debouncedSearch.toLowerCase());
     const matchesCategory = categoryFilter === 'ALL' || p.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });

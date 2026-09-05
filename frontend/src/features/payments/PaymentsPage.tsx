@@ -35,6 +35,7 @@ import {
   Tooltip,
   Legend
 } from 'recharts';
+import { useDebounce } from '../../hooks/useDebounce';
 
 interface PaymentsPageProps {
   defaultType?: 'ALL' | 'CUSTOMER' | 'VENDOR';
@@ -42,6 +43,7 @@ interface PaymentsPageProps {
 
 export const PaymentsPage: React.FC<PaymentsPageProps> = ({ defaultType = 'ALL' }) => {
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 350);
   const [typeFilter, setTypeFilter] = useState<string>(defaultType);
   const [detailPaymentId, setDetailPaymentId] = useState<number | null>(null);
   const [chartType, setChartType] = useState<'area' | 'bar'>('area');
@@ -56,11 +58,11 @@ export const PaymentsPage: React.FC<PaymentsPageProps> = ({ defaultType = 'ALL' 
 
   // Fetch payments
   const { data: payments, isLoading } = useQuery<Payment[]>({
-    queryKey: ['payments', search, typeFilter],
+    queryKey: ['payments', debouncedSearch, typeFilter],
     queryFn: async () => {
       const res = await api.get('/payments', {
         params: {
-          search: search || undefined,
+          search: debouncedSearch || undefined,
           type: typeFilter !== 'ALL' ? typeFilter : undefined,
         },
       });

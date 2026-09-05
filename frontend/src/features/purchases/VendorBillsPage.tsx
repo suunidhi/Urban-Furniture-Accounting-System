@@ -27,10 +27,12 @@ import {
   DollarSign, 
   Layers 
 } from 'lucide-react';
+import { useDebounce } from '../../hooks/useDebounce';
 
 export const VendorBillsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 350);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [modalOpen, setModalOpen] = useState(false);
   const [detailBillId, setDetailBillId] = useState<number | null>(null);
@@ -70,11 +72,11 @@ export const VendorBillsPage: React.FC = () => {
 
   // Fetch Bills
   const { data: bills, isLoading } = useQuery<VendorBill[]>({
-    queryKey: ['vendor-bills', search, statusFilter],
+    queryKey: ['vendor-bills', debouncedSearch, statusFilter],
     queryFn: async () => {
       const res = await api.get('/vendor-bills', {
         params: {
-          search: search || undefined,
+          search: debouncedSearch || undefined,
           status: statusFilter !== 'ALL' ? statusFilter : undefined,
         },
       });

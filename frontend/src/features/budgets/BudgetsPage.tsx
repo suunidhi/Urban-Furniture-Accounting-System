@@ -19,11 +19,13 @@ import {
   GitFork, 
   ArrowRight 
 } from 'lucide-react';
+import { useDebounce } from '../../hooks/useDebounce';
 
 export const BudgetsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 350);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [reviseModalOpen, setReviseModalOpen] = useState(false);
@@ -52,11 +54,11 @@ export const BudgetsPage: React.FC = () => {
 
   // Fetch Budgets
   const { data: budgets, isLoading } = useQuery<Budget[]>({
-    queryKey: ['budgets', search, statusFilter],
+    queryKey: ['budgets', debouncedSearch, statusFilter],
     queryFn: async () => {
       const res = await api.get('/budgets', {
         params: {
-          search: search || undefined,
+          search: debouncedSearch || undefined,
           status: statusFilter !== 'ALL' ? statusFilter : undefined,
         },
       });

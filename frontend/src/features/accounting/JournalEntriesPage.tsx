@@ -16,10 +16,12 @@ import {
   Layers,
   ArrowRight
 } from 'lucide-react';
+import { useDebounce } from '../../hooks/useDebounce';
 
 export const JournalEntriesPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 350);
   const [journalFilter, setJournalFilter] = useState<number | 'ALL'>('ALL');
   const [detailEntryId, setDetailEntryId] = useState<number | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -38,11 +40,11 @@ export const JournalEntriesPage: React.FC = () => {
 
   // Fetch Journal Entries
   const { data: entries, isLoading } = useQuery<JournalEntry[]>({
-    queryKey: ['journal-entries', search, journalFilter],
+    queryKey: ['journal-entries', debouncedSearch, journalFilter],
     queryFn: async () => {
       const res = await api.get('/accounting/journal-entries', {
         params: {
-          search: search || undefined,
+          search: debouncedSearch || undefined,
           journalId: journalFilter !== 'ALL' ? journalFilter : undefined,
         },
       });

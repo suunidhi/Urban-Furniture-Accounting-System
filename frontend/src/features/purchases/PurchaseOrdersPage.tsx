@@ -15,10 +15,12 @@ import {
   Clock,
   Check
 } from 'lucide-react';
+import { useDebounce } from '../../hooks/useDebounce';
 
 export const PurchaseOrdersPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 350);
   const [modalOpen, setModalOpen] = useState(false);
   const [detailPOId, setDetailPOId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -36,9 +38,9 @@ export const PurchaseOrdersPage: React.FC = () => {
 
   // Fetch POs
   const { data: pos, isLoading } = useQuery<PurchaseOrder[]>({
-    queryKey: ['purchase-orders', search],
+    queryKey: ['purchase-orders', debouncedSearch],
     queryFn: async () => {
-      const res = await api.get('/purchases', { params: { search: search || undefined } });
+      const res = await api.get('/purchases', { params: { search: debouncedSearch || undefined } });
       return res.data.data;
     },
   });

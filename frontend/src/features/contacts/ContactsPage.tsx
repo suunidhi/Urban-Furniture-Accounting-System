@@ -23,12 +23,14 @@ import {
   Archive,
   RotateCcw
 } from 'lucide-react';
+import { useDebounce } from '../../hooks/useDebounce';
 
 export const ContactsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { isAdmin } = useAuth();
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 350);
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'ARCHIVED'>('ACTIVE');
   const [modalOpen, setModalOpen] = useState(false);
@@ -64,12 +66,12 @@ export const ContactsPage: React.FC = () => {
 
   // Fetch contacts
   const { data: contacts, isLoading } = useQuery<Contact[]>({
-    queryKey: ['contacts', typeFilter, search, statusFilter],
+    queryKey: ['contacts', typeFilter, debouncedSearch, statusFilter],
     queryFn: async () => {
       const res = await api.get('/contacts', {
         params: {
           type: typeFilter !== 'ALL' ? typeFilter : undefined,
-          search: search || undefined,
+          search: debouncedSearch || undefined,
           status: statusFilter !== 'ALL' ? statusFilter : undefined,
         },
       });
