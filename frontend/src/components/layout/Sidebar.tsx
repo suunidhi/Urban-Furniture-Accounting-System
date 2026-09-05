@@ -44,10 +44,11 @@ interface NavSection {
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { isAdmin, isContactUser } = useAuth();
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    Accounting: true,
     Sales: true,
-    Purchases: true,
-    Reports: true,
+    Purchase: true,
+    Account: true,
+    Report: true,
+    Administration: false,
   });
 
   const toggleSection = (title: string) => {
@@ -124,71 +125,52 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     );
   }
 
-  // Standard ERP Navigation sections for Admin and Accountants
+  // Navigation sections matching the required flow:
+  // 1. Overview (at top)
+  // 2. Sales
+  // 3. Purchase
+  // 4. Account
+  // 5. Report
+  // + Administration for Admins
   const sections: NavSection[] = [
-    {
-      title: 'Accounting',
-      icon: BookOpen,
-      items: [
-        { title: 'Overview', path: '/accounting/overview' },
-        { title: 'Journal Entries', path: '/accounting/journal-entries' },
-        { title: 'Payments Ledger', path: '/accounting/payments' },
-        { title: 'OCR Bill Assistant', path: '/accounting/ocr-assistant' },
-        { title: 'Chart of Accounts', path: '/accounting/chart-of-accounts' },
-        { title: 'Journals', path: '/accounting/journals' },
-        { title: 'Analytic Accounts', path: '/accounting/analytic-accounts' },
-      ],
-    },
     {
       title: 'Sales',
       icon: ShoppingCart,
       items: [
         { title: 'Sales Orders', path: '/sales/orders' },
-        { title: 'Customer Invoices', path: '/sales/invoices' },
-        { title: 'Contact Master', path: '/sales/customers' },
-        { title: 'Customer Payments', path: '/accounting/payments' },
+        { title: 'Sales Invoice', path: '/sales/invoices' },
+        { title: 'Receipt', path: '/sales/receipts' },
       ],
     },
     {
-      title: 'Purchases',
+      title: 'Purchase',
       icon: Truck,
       items: [
-        { title: 'Purchase Orders', path: '/purchases/orders' },
-        { title: 'Vendor Bills', path: '/purchases/bills' },
-        { title: 'Vendors', path: '/purchases/vendors' },
-        { title: 'Vendor Payments', path: '/accounting/payments' },
+        { title: 'Purchase Order', path: '/purchases/orders' },
+        { title: 'Purchase Bill', path: '/purchases/bills' },
+        { title: 'Payment', path: '/purchases/payments' },
       ],
     },
     {
-      title: 'Products',
-      icon: Package,
+      title: 'Account',
+      icon: BookOpen,
       items: [
-        { title: 'All Products', path: '/products' },
-        { title: 'Categories', path: '/products/categories' },
-        { title: 'Product & Stock Summary', path: '/products/stock' },
+        { title: 'Contact', path: '/contacts' },
+        { title: 'Product', path: '/products' },
+        { title: 'Analyticals', path: '/accounting/analytic-accounts' },
+        { title: 'Analytical Budget', path: '/budgets' },
+        { title: 'Chart of Account', path: '/accounting/chart-of-accounts' },
+        { title: 'Journals', path: '/accounting/journals' },
+        { title: 'Journals Entries', path: '/accounting/journal-entries' },
       ],
     },
     {
-      title: 'Budget',
-      icon: PieChart,
-      items: [
-        { title: 'Budgets Master', path: '/budgets' },
-        { title: 'Budget Analysis', path: '/budgets/analysis' },
-      ],
-    },
-    {
-      title: 'Reports',
+      title: 'Report',
       icon: BarChart3,
       items: [
         { title: 'Balance Sheet', path: '/reports/balance-sheet' },
-        { title: 'Profit & Loss', path: '/reports/profit-loss' },
-        { title: 'Trial Balance', path: '/reports/trial-balance' },
-        { title: 'General Ledger', path: '/reports/general-ledger' },
-        { title: 'Aged Receivable', path: '/reports/aged-receivable' },
-        { title: 'Aged Payable', path: '/reports/aged-payable' },
+        { title: 'Profit and Loss', path: '/reports/profit-loss' },
         { title: 'Budget Report', path: '/reports/budget-report' },
-        { title: 'Sales Analytics', path: '/reports/sales-analytics' },
-        { title: 'Purchase Analytics', path: '/reports/purchase-analytics' },
       ],
     },
     {
@@ -232,7 +214,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             }
           >
             <LayoutDashboard className="w-4 h-4" />
-            <span>Dashboard Overview</span>
+            <span>Overview</span>
           </NavLink>
         </div>
 

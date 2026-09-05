@@ -160,6 +160,9 @@ model Product {
   category           ProductCategory     @relation(fields: [categoryId], references: [id])
   imageUrl           String?             @db.Text
   status             RecordStatus        @default(ACTIVE)
+  paymentTerms       String?             @default("30 Days") @db.VarChar(100)
+  allowPartialPayment Boolean            @default(true)
+  defaultDueDate     DateTime?
   purchaseOrderLines PurchaseOrderLine[]
   vendorBillLines    VendorBillLine[]
   salesOrderLines    SalesOrderLine[]

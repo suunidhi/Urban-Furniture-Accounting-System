@@ -12,9 +12,9 @@ export class MasterDataService {
       where.type = filter.type as ContactType;
     }
 
-    if (filter?.status) {
+    if (filter?.status && filter.status !== 'ALL') {
       where.status = filter.status as RecordStatus;
-    } else {
+    } else if (!filter?.status) {
       where.status = RecordStatus.ACTIVE;
     }
 
@@ -212,9 +212,9 @@ export class MasterDataService {
       where.categoryId = Number(filter.categoryId);
     }
 
-    if (filter?.status) {
+    if (filter?.status && filter.status !== 'ALL') {
       where.status = filter.status as RecordStatus;
-    } else {
+    } else if (!filter?.status) {
       where.status = RecordStatus.ACTIVE;
     }
 
@@ -276,6 +276,62 @@ export class MasterDataService {
 
     const currentStock = quantityPurchased - quantitySold;
 
+    // Fetch related invoices and bills for due dates and partial payments tracking
+    const detailedInvoiceLines = await prisma.customerInvoiceLine.findMany({
+      where: { productId: id },
+      include: {
+        customerInvoice: {
+          include: { customer: true },
+        },
+      },
+      orderBy: { id: 'desc' },
+      take: 25,
+    });
+
+    const detailedBillLines = await prisma.vendorBillLine.findMany({
+      where: { productId: id },
+      include: {
+        vendorBill: {
+          include: { vendor: true },
+        },
+      },
+      orderBy: { id: 'desc' },
+      take: 25,
+    });
+
+    const relatedTransactions = [
+      ...detailedInvoiceLines.map((l) => ({
+        id: l.customerInvoice.id,
+        reference: l.customerInvoice.invoiceNumber,
+        partnerName: l.customerInvoice.customer?.name || 'Customer',
+        partnerId: l.customerInvoice.customerId,
+        date: l.customerInvoice.invoiceDate,
+        dueDate: l.customerInvoice.dueDate,
+        totalAmount: Number(l.customerInvoice.totalAmount),
+        paidAmount: Number(l.customerInvoice.paidAmount),
+        amountDue: Number(l.customerInvoice.amountDue),
+        status: l.customerInvoice.status,
+        type: 'CUSTOMER',
+        quantity: Number(l.quantity),
+        lineTotal: Number(l.total),
+      })),
+      ...detailedBillLines.map((l) => ({
+        id: l.vendorBill.id,
+        reference: l.vendorBill.billNumber,
+        partnerName: l.vendorBill.vendor?.name || 'Vendor',
+        partnerId: l.vendorBill.vendorId,
+        date: l.vendorBill.billDate,
+        dueDate: l.vendorBill.dueDate,
+        totalAmount: Number(l.vendorBill.totalAmount),
+        paidAmount: Number(l.vendorBill.paidAmount),
+        amountDue: Number(l.vendorBill.amountDue),
+        status: l.vendorBill.status,
+        type: 'VENDOR',
+        quantity: Number(l.quantity),
+        lineTotal: Number(l.total),
+      })),
+    ];
+
     return {
       ...product,
       stockMetrics: {
@@ -285,6 +341,7 @@ export class MasterDataService {
         salesValue,
         currentStock,
       },
+      relatedTransactions,
     };
   }
 
@@ -370,8 +427,15 @@ export class MasterDataService {
         type: data.type,
         salesPrice: data.salesPrice,
         costPrice: data.costPrice,
-        categoryId: data.categoryId,
+        category: {
+          connect: { id: Number(data.categoryId) },
+        },
         imageUrl: data.imageUrl || null,
+        paymentTerms: data.paymentTerms || null,
+        allowPartialPayment: data.allowPartialPayment !== undefined ? Boolean(data.allowPartialPayment) : true,
+        defaultDueDate: data.defaultDueDate && !isNaN(new Date(data.defaultDueDate).getTime())
+          ? new Date(data.defaultDueDate)
+          : null,
         status: RecordStatus.ACTIVE,
       },
       include: {
@@ -381,9 +445,29 @@ export class MasterDataService {
   }
 
   static async updateProduct(id: number, data: any) {
+    const updateData: any = {};
+    if (data.name !== undefined) updateData.name = data.name.trim();
+    if (data.type !== undefined) updateData.type = data.type;
+    if (data.salesPrice !== undefined) updateData.salesPrice = data.salesPrice;
+    if (data.costPrice !== undefined) updateData.costPrice = data.costPrice;
+    if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl || null;
+    if (data.status !== undefined) updateData.status = data.status;
+    if (data.paymentTerms !== undefined) updateData.paymentTerms = data.paymentTerms || null;
+    if (data.allowPartialPayment !== undefined) updateData.allowPartialPayment = Boolean(data.allowPartialPayment);
+    if (data.defaultDueDate !== undefined) {
+      updateData.defaultDueDate = data.defaultDueDate && !isNaN(new Date(data.defaultDueDate).getTime())
+        ? new Date(data.defaultDueDate)
+        : null;
+    }
+    if (data.categoryId !== undefined && data.categoryId !== null) {
+      updateData.category = {
+        connect: { id: Number(data.categoryId) },
+      };
+    }
+
     return await prisma.product.update({
       where: { id },
-      data,
+      data: updateData,
       include: { category: true },
     });
   }
@@ -494,8 +578,8 @@ export class MasterDataService {
         entryNumber: item.journalEntry.entryNumber,
         reference: item.journalEntry.reference,
         journal: item.journalEntry.journal.name,
-        partner: item.partner?.name || null,
-        analytic: item.analyticAccount?.name || null,
+        partner: item.partner?.name,
+        analytic: item.analyticAccount?.name,
         description: item.description,
         debit: d,
         credit: c,
@@ -528,7 +612,7 @@ export class MasterDataService {
         code: data.code.trim(),
         name: data.name.trim(),
         type: data.type,
-        parentId: data.parentId || null,
+        parentId: data.parentId,
         isActive: data.isActive ?? true,
       },
       include: { parent: true },
@@ -577,8 +661,8 @@ export class MasterDataService {
         name: data.name.trim(),
         code: data.code.trim().toUpperCase(),
         type: data.type,
-        defaultDebitAccountId: data.defaultDebitAccountId || null,
-        defaultCreditAccountId: data.defaultCreditAccountId || null,
+        defaultDebitAccountId: data.defaultDebitAccountId,
+        defaultCreditAccountId: data.defaultCreditAccountId,
       },
       include: {
         defaultDebitAccount: true,

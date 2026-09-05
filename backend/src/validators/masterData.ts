@@ -28,6 +28,9 @@ export const productSchema = z.object({
   costPrice: z.coerce.number().min(0, 'Cost price must be non-negative'),
   categoryId: z.coerce.number().int().positive('Category is required'),
   imageUrl: z.string().optional().nullable(),
+  paymentTerms: z.string().optional().nullable(),
+  allowPartialPayment: z.boolean().optional().nullable(),
+  defaultDueDate: z.string().optional().nullable(),
 });
 
 // Account validation

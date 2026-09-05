@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { Payment, Contact, Journal, PaymentType, PaymentMethod } from '../../types';
@@ -12,13 +12,47 @@ import {
   Calendar, 
   FileText, 
   X,
-  Plus
+  Plus,
+  TrendingUp,
+  BarChart2,
+  PieChart as PieChartIcon,
+  Landmark,
+  Wallet,
+  Layers
 } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend
+} from 'recharts';
 
-export const PaymentsPage: React.FC = () => {
+interface PaymentsPageProps {
+  defaultType?: 'ALL' | 'CUSTOMER' | 'VENDOR';
+}
+
+export const PaymentsPage: React.FC<PaymentsPageProps> = ({ defaultType = 'ALL' }) => {
   const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState<string>('ALL');
+  const [typeFilter, setTypeFilter] = useState<string>(defaultType);
   const [detailPaymentId, setDetailPaymentId] = useState<number | null>(null);
+  const [chartType, setChartType] = useState<'area' | 'bar'>('area');
+  const [showCharts, setShowCharts] = useState(true);
+
+  // Sync if route prop changes
+  useEffect(() => {
+    if (defaultType) {
+      setTypeFilter(defaultType);
+    }
+  }, [defaultType]);
 
   // Fetch payments
   const { data: payments, isLoading } = useQuery<Payment[]>({
@@ -45,6 +79,66 @@ export const PaymentsPage: React.FC = () => {
     enabled: !!detailPaymentId,
   });
 
+  // Analytics datasets for Vendor / Purchase Payments
+  const analytics = useMemo(() => {
+    if (!payments) return null;
+    const vendorPayments = typeFilter === 'CUSTOMER' ? payments : payments.filter(p => p.type === 'VENDOR');
+    const targetPayments = typeFilter === 'ALL' ? payments : vendorPayments;
+
+    const totalAmount = targetPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+    const count = targetPayments.length;
+    const avgAmount = count > 0 ? totalAmount / count : 0;
+
+    // By date timeline
+    const dateMap: Record<string, { date: string; amount: number; count: number }> = {};
+    const sorted = [...targetPayments].sort((a, b) => new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime());
+    sorted.forEach((p) => {
+      const d = new Date(p.paymentDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+      if (!dateMap[d]) {
+        dateMap[d] = { date: d, amount: 0, count: 0 };
+      }
+      dateMap[d].amount += Number(p.amount);
+      dateMap[d].count += 1;
+    });
+    const timelineData = Object.values(dateMap);
+
+    // By payment method
+    let bankAmount = 0;
+    let cashAmount = 0;
+    targetPayments.forEach((p) => {
+      if (p.paymentMethod === 'BANK') bankAmount += Number(p.amount);
+      else cashAmount += Number(p.amount);
+    });
+    const methodData = [
+      { name: 'Bank Transfer', value: bankAmount, color: '#714B67' },
+      { name: 'Cash Payment', value: cashAmount, color: '#017E84' },
+    ].filter(m => m.value > 0);
+
+    // By Vendor
+    const vendorMap: Record<string, number> = {};
+    targetPayments.forEach((p) => {
+      const vName = p.partner?.name || 'Other Partner';
+      vendorMap[vName] = (vendorMap[vName] || 0) + Number(p.amount);
+    });
+    const vendorData = Object.entries(vendorMap)
+      .map(([name, amount]) => ({ name, amount }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 5);
+
+    return {
+      totalAmount,
+      count,
+      avgAmount,
+      bankAmount,
+      cashAmount,
+      timelineData,
+      methodData,
+      vendorData,
+    };
+  }, [payments, typeFilter]);
+
+  const isPurchasePayment = typeFilter === 'VENDOR' || defaultType === 'VENDOR';
+
   return (
     <div className="space-y-6">
       {/* Top Header */}
@@ -52,12 +146,30 @@ export const PaymentsPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <CreditCard className="w-7 h-7 text-[#714B67]" />
-            Payments & Bank Receipts
+            {isPurchasePayment ? 'Purchase Payments & Supplier Disbursements' : 'Payments & Bank Receipts'}
           </h1>
           <p className="text-gray-500 text-sm mt-1">
-            Complete audit trail of all customer collections and supplier disbursements
+            {isPurchasePayment
+              ? 'Interactive cash outflow ledger and supplier payment reconciliation'
+              : 'Complete audit trail of all customer collections and supplier disbursements'}
           </p>
         </div>
+
+        {isPurchasePayment && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowCharts(!showCharts)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-colors ${
+                showCharts
+                  ? 'bg-[#F3EAF0] text-[#714B67] border-[#714B67]/30'
+                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              <BarChart2 className="w-3.5 h-3.5" />
+              {showCharts ? 'Hide Visual Analytics' : 'Show Visual Analytics'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Filter & Search Bar */}
@@ -89,6 +201,271 @@ export const PaymentsPage: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {/* Interactive Visual Analytics for Purchase Payments */}
+      {(isPurchasePayment || typeFilter === 'VENDOR') && showCharts && analytics && (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          {/* Top KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+              <div>
+                <span className="text-xs text-gray-500 font-medium">Total Outflows</span>
+                <p className="text-xl font-bold font-mono text-gray-900 mt-1">
+                  ₹{analytics.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </p>
+                <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-0.5 mt-0.5">
+                  <TrendingUp className="w-3 h-3" /> Settled disbursements
+                </span>
+              </div>
+              <div className="p-3 bg-rose-50 rounded-xl text-rose-600">
+                <ArrowUpRight className="w-6 h-6" />
+              </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+              <div>
+                <span className="text-xs text-gray-500 font-medium">Disbursements Count</span>
+                <p className="text-xl font-bold font-mono text-gray-900 mt-1">
+                  {analytics.count}
+                </p>
+                <span className="text-[11px] text-gray-400 mt-0.5 block">
+                  Processed vouchers
+                </span>
+              </div>
+              <div className="p-3 bg-[#714B67]/10 rounded-xl text-[#714B67]">
+                <CreditCard className="w-6 h-6" />
+              </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+              <div>
+                <span className="text-xs text-gray-500 font-medium">Average Outflow</span>
+                <p className="text-xl font-bold font-mono text-gray-900 mt-1">
+                  ₹{analytics.avgAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </p>
+                <span className="text-[11px] text-gray-400 mt-0.5 block">
+                  Per vendor transaction
+                </span>
+              </div>
+              <div className="p-3 bg-blue-50 rounded-xl text-blue-600">
+                <Wallet className="w-6 h-6" />
+              </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+              <div>
+                <span className="text-xs text-gray-500 font-medium">Bank vs Cash Split</span>
+                <div className="flex items-center gap-2 mt-1 font-mono text-xs">
+                  <span className="text-[#714B67] font-bold">
+                    Bank: {analytics.totalAmount > 0 ? Math.round((analytics.bankAmount / analytics.totalAmount) * 100) : 0}%
+                  </span>
+                  <span className="text-gray-300">|</span>
+                  <span className="text-[#017E84] font-bold">
+                    Cash: {analytics.totalAmount > 0 ? Math.round((analytics.cashAmount / analytics.totalAmount) * 100) : 0}%
+                  </span>
+                </div>
+                <span className="text-[11px] text-gray-400 mt-0.5 block">
+                  Disbursement methods
+                </span>
+              </div>
+              <div className="p-3 bg-emerald-50 rounded-xl text-emerald-600">
+                <Landmark className="w-6 h-6" />
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive Charts Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Chart 1: Outflows Trend over Time */}
+            <div className="lg:col-span-2 bg-white p-5 rounded-xl border border-gray-200 shadow-xs">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-[#714B67]" />
+                    Disbursement Trend Over Time
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-0.5">Timeline of payments issued to vendors</p>
+                </div>
+                <div className="flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg text-xs">
+                  <button
+                    onClick={() => setChartType('area')}
+                    className={`px-2.5 py-1 rounded-md transition-colors ${
+                      chartType === 'area' ? 'bg-white text-gray-900 font-semibold shadow-xs' : 'text-gray-500 hover:text-gray-800'
+                    }`}
+                  >
+                    Area
+                  </button>
+                  <button
+                    onClick={() => setChartType('bar')}
+                    className={`px-2.5 py-1 rounded-md transition-colors ${
+                      chartType === 'bar' ? 'bg-white text-gray-900 font-semibold shadow-xs' : 'text-gray-500 hover:text-gray-800'
+                    }`}
+                  >
+                    Bar
+                  </button>
+                </div>
+              </div>
+
+              <div className="h-64 w-full">
+                {analytics.timelineData.length === 0 ? (
+                  <div className="h-full flex items-center justify-center text-xs text-gray-400">
+                    No timeline disbursements recorded yet
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    {chartType === 'area' ? (
+                      <AreaChart data={analytics.timelineData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#714B67" stopOpacity={0.4} />
+                            <stop offset="95%" stopColor="#714B67" stopOpacity={0.0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+                        <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#6B7280' }} />
+                        <YAxis
+                          tick={{ fontSize: 11, fill: '#6B7280' }}
+                          tickFormatter={(val) => `₹${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`}
+                        />
+                        <Tooltip
+                          formatter={(value: any) => [`₹${Number(value).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 'Disbursement']}
+                          labelStyle={{ fontWeight: 600, color: '#1F2937' }}
+                          contentStyle={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #E5E7EB', fontSize: '12px' }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="amount"
+                          stroke="#714B67"
+                          strokeWidth={2.5}
+                          fillOpacity={1}
+                          fill="url(#colorAmount)"
+                        />
+                      </AreaChart>
+                    ) : (
+                      <BarChart data={analytics.timelineData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+                        <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#6B7280' }} />
+                        <YAxis
+                          tick={{ fontSize: 11, fill: '#6B7280' }}
+                          tickFormatter={(val) => `₹${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`}
+                        />
+                        <Tooltip
+                          formatter={(value: any) => [`₹${Number(value).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 'Disbursement']}
+                          labelStyle={{ fontWeight: 600, color: '#1F2937' }}
+                          contentStyle={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #E5E7EB', fontSize: '12px' }}
+                        />
+                        <Bar dataKey="amount" fill="#714B67" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    )}
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+
+            {/* Chart 2: Method Distribution Donut */}
+            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-xs flex flex-col justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                  <PieChartIcon className="w-4 h-4 text-[#017E84]" />
+                  Payment Methods
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">Bank vs Cash disbursement breakdown</p>
+              </div>
+
+              <div className="h-48 w-full my-auto">
+                {analytics.methodData.length === 0 ? (
+                  <div className="h-full flex items-center justify-center text-xs text-gray-400">
+                    No payment methods data
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={analytics.methodData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={45}
+                        outerRadius={70}
+                        paddingAngle={4}
+                        dataKey="value"
+                      >
+                        {analytics.methodData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(val: any) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Total']}
+                        contentStyle={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #E5E7EB', fontSize: '12px' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+
+              {/* Legend & values */}
+              <div className="pt-3 border-t border-gray-100 space-y-1.5 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-gray-600">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#714B67]"></span>
+                    Bank Transfer
+                  </span>
+                  <span className="font-mono font-semibold text-gray-800">
+                    ₹{analytics.bankAmount.toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-gray-600">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#017E84]"></span>
+                    Cash Payment
+                  </span>
+                  <span className="font-mono font-semibold text-gray-800">
+                    ₹{analytics.cashAmount.toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Chart 3: Top Vendors Breakdown */}
+          {analytics.vendorData.length > 0 && (
+            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-xs">
+              <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2 mb-1">
+                <Building2 className="w-4 h-4 text-[#714B67]" />
+                Top Beneficiary Vendors by Outflow
+              </h3>
+              <p className="text-xs text-gray-400 mb-4">Highest disbursement recipients in the accounting ledger</p>
+              
+              <div className="h-44 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={analytics.vendorData}
+                    layout="vertical"
+                    margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F3F4F6" />
+                    <XAxis
+                      type="number"
+                      tick={{ fontSize: 11, fill: '#6B7280' }}
+                      tickFormatter={(val) => `₹${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      tick={{ fontSize: 11, fill: '#374151' }}
+                      width={90}
+                    />
+                    <Tooltip
+                      formatter={(val: any) => [`₹${Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 'Paid']}
+                      contentStyle={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #E5E7EB', fontSize: '12px' }}
+                    />
+                    <Bar dataKey="amount" fill="#017E84" radius={[0, 4, 4, 0]} barSize={16} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Payments Table */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">

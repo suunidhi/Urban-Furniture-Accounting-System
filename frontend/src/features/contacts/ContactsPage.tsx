@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import { Contact, ContactType, RecordStatus } from '../../types';
 import { 
   Users, 
@@ -17,15 +18,21 @@ import {
   AlertCircle,
   FileText,
   Receipt,
-  CreditCard
+  CreditCard,
+  Edit2,
+  Archive,
+  RotateCcw
 } from 'lucide-react';
 
 export const ContactsPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const { isAdmin } = useAuth();
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'ARCHIVED'>('ACTIVE');
   const [modalOpen, setModalOpen] = useState(false);
+  const [editModalContact, setEditModalContact] = useState<Contact | null>(null);
   const [detailModalContactId, setDetailModalContactId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,14 +49,28 @@ export const ContactsPage: React.FC = () => {
     imageUrl: '',
   });
 
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    type: 'CUSTOMER' as ContactType,
+    email: '',
+    mobile: '',
+    street: '',
+    city: '',
+    state: '',
+    country: 'India',
+    pincode: '',
+    imageUrl: '',
+  });
+
   // Fetch contacts
   const { data: contacts, isLoading } = useQuery<Contact[]>({
-    queryKey: ['contacts', typeFilter, search],
+    queryKey: ['contacts', typeFilter, search, statusFilter],
     queryFn: async () => {
       const res = await api.get('/contacts', {
         params: {
           type: typeFilter !== 'ALL' ? typeFilter : undefined,
           search: search || undefined,
+          status: statusFilter !== 'ALL' ? statusFilter : undefined,
         },
       });
       return res.data.data;
@@ -95,6 +116,61 @@ export const ContactsPage: React.FC = () => {
       setError(msg);
     },
   });
+
+  // Admin Edit Contact mutation
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, payload }: { id: number; payload: typeof editFormData }) => {
+      const res = await api.put(`/contacts/${id}`, payload);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      queryClient.invalidateQueries({ queryKey: ['contact', editModalContact?.id] });
+      setEditModalContact(null);
+      setError(null);
+    },
+    onError: (err: any) => {
+      const msg = err.response?.data?.message || 'Failed to update contact.';
+      setError(msg);
+    },
+  });
+
+  // Admin Toggle status (Archive / Restore) mutation
+  const toggleStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: RecordStatus }) => {
+      const res = await api.patch(`/contacts/${id}/status`, { status });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    },
+    onError: (err: any) => {
+      alert(err.response?.data?.message || 'Failed to update contact status.');
+    },
+  });
+
+  const handleOpenEdit = (c: Contact) => {
+    setEditModalContact(c);
+    setEditFormData({
+      name: c.name,
+      type: c.type,
+      email: c.email || '',
+      mobile: c.mobile || '',
+      street: c.street || '',
+      city: c.city || '',
+      state: c.state || '',
+      country: c.country || 'India',
+      pincode: c.pincode || '',
+      imageUrl: c.imageUrl || '',
+    });
+    setError(null);
+  };
+
+  const handleUpdateSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editModalContact) return;
+    updateMutation.mutate({ id: editModalContact.id, payload: editFormData });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,8 +243,8 @@ export const ContactsPage: React.FC = () => {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-lg border border-[#E5E7EB] shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+      <div className="bg-white p-4 rounded-lg border border-[#E5E7EB] shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           {['ALL', 'CUSTOMER', 'VENDOR', 'BOTH'].map((t) => (
             <button
               key={t}
@@ -182,9 +258,26 @@ export const ContactsPage: React.FC = () => {
               {t === 'ALL' ? 'All Contacts' : t === 'BOTH' ? 'Both' : `${t.charAt(0) + t.slice(1).toLowerCase()}s`}
             </button>
           ))}
+
+          {/* Status Tabs */}
+          <div className="flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg text-xs ml-0 sm:ml-2">
+            {(['ACTIVE', 'ARCHIVED', 'ALL'] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={`px-2.5 py-1 rounded-md text-xs transition-colors ${
+                  statusFilter === s
+                    ? 'bg-white text-[#714B67] font-bold shadow-xs'
+                    : 'text-gray-500 hover:text-gray-900'
+                }`}
+              >
+                {s === 'ACTIVE' ? 'Active' : s === 'ARCHIVED' ? 'Archived' : 'All'}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="relative w-full sm:w-72">
+        <div className="relative w-full md:w-72">
           <Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
           <input
             type="text"
@@ -213,6 +306,7 @@ export const ContactsPage: React.FC = () => {
               <tr className="bg-[#F8F9FA] border-b border-[#E5E7EB] text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 <th className="py-3 px-4">Contact</th>
                 <th className="py-3 px-4">Type</th>
+                <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4">Email</th>
                 <th className="py-3 px-4">Phone</th>
                 <th className="py-3 px-4">City / State</th>
@@ -241,6 +335,17 @@ export const ContactsPage: React.FC = () => {
                     </div>
                   </td>
                   <td className="py-3 px-4">{getTypeBadge(c.type)}</td>
+                  <td className="py-3 px-4">
+                    {c.status === 'ARCHIVED' ? (
+                      <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-gray-100 text-gray-600 border border-gray-200">
+                        Archived
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Active
+                      </span>
+                    )}
+                  </td>
                   <td className="py-3 px-4 text-gray-600">{c.email || '—'}</td>
                   <td className="py-3 px-4 text-gray-600">{c.mobile || '—'}</td>
                   <td className="py-3 px-4 text-gray-600">
@@ -251,16 +356,42 @@ export const ContactsPage: React.FC = () => {
                       {(c as any)._count?.invoices || 0} Inv / {(c as any)._count?.vendorBills || 0} Bills
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-right">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDetailModalContactId(c.id);
-                      }}
-                      className="text-xs text-[#714B67] hover:underline font-semibold"
-                    >
-                      View Details
-                    </button>
+                  <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => setDetailModalContactId(c.id)}
+                        className="text-xs text-[#714B67] hover:underline font-semibold"
+                      >
+                        View
+                      </button>
+                      {isAdmin && (
+                        <>
+                          <button
+                            onClick={() => handleOpenEdit(c)}
+                            title="Edit Contact (Admin)"
+                            className="p-1 text-gray-500 hover:text-[#714B67] rounded hover:bg-gray-100 transition-colors"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              const newStatus = c.status === 'ACTIVE' ? 'ARCHIVED' : 'ACTIVE';
+                              if (confirm(`Are you sure you want to ${newStatus === 'ARCHIVED' ? 'archive' : 'restore'} ${c.name}?`)) {
+                                toggleStatusMutation.mutate({ id: c.id, status: newStatus });
+                              }
+                            }}
+                            title={c.status === 'ACTIVE' ? 'Archive Contact (Admin)' : 'Restore Contact (Admin)'}
+                            className={`p-1 rounded transition-colors ${
+                              c.status === 'ACTIVE'
+                                ? 'text-gray-400 hover:text-rose-600 hover:bg-rose-50'
+                                : 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
+                            }`}
+                          >
+                            {c.status === 'ACTIVE' ? <Archive className="w-3.5 h-3.5" /> : <RotateCcw className="w-3.5 h-3.5" />}
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -286,6 +417,45 @@ export const ContactsPage: React.FC = () => {
                       <h3 className="font-bold text-gray-900 text-sm">{c.name}</h3>
                       <div className="mt-0.5">{getTypeBadge(c.type)}</div>
                     </div>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    {c.status === 'ARCHIVED' ? (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-100 text-gray-600 border border-gray-200">
+                        Archived
+                      </span>
+                    ) : (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Active
+                      </span>
+                    )}
+                    {isAdmin && (
+                      <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => handleOpenEdit(c)}
+                          title="Edit Contact (Admin)"
+                          className="p-1 text-gray-400 hover:text-[#714B67] rounded hover:bg-gray-100"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            const newStatus = c.status === 'ACTIVE' ? 'ARCHIVED' : 'ACTIVE';
+                            if (confirm(`Are you sure you want to ${newStatus === 'ARCHIVED' ? 'archive' : 'restore'} ${c.name}?`)) {
+                              toggleStatusMutation.mutate({ id: c.id, status: newStatus });
+                            }
+                          }}
+                          title={c.status === 'ACTIVE' ? 'Archive Contact (Admin)' : 'Restore Contact (Admin)'}
+                          className={`p-1 rounded ${
+                            c.status === 'ACTIVE'
+                              ? 'text-gray-400 hover:text-rose-600 hover:bg-rose-50'
+                              : 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
+                          }`}
+                        >
+                          {c.status === 'ACTIVE' ? <Archive className="w-3.5 h-3.5" /> : <RotateCcw className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -466,6 +636,162 @@ export const ContactsPage: React.FC = () => {
                 </button>
                 <button type="submit" disabled={createMutation.isPending} className="btn-primary">
                   {createMutation.isPending ? 'Saving...' : 'Save Contact'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Contact Modal (Admin) */}
+      {editModalContact && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full border border-[#E5E7EB] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-[#F8F9FA]">
+              <div className="flex items-center gap-2">
+                <Edit2 className="w-4 h-4 text-[#714B67]" />
+                <h2 className="text-lg font-bold text-gray-900">Edit Contact Master</h2>
+              </div>
+              <button onClick={() => setEditModalContact(null)} className="text-gray-400 hover:text-gray-600 p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateSubmit} className="p-6 space-y-4 text-sm">
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-lg text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    Contact Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.name}
+                    onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                    placeholder="e.g. Azure Furniture or Nimesh Pathak"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    Contact Type *
+                  </label>
+                  <select
+                    value={editFormData.type}
+                    onChange={(e) => setEditFormData({ ...editFormData, type: e.target.value as ContactType })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67]"
+                  >
+                    <option value="CUSTOMER">Customer</option>
+                    <option value="VENDOR">Vendor</option>
+                    <option value="BOTH">Customer & Vendor (Both)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    Mobile Number
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.mobile}
+                    onChange={(e) => setEditFormData({ ...editFormData, mobile: e.target.value })}
+                    placeholder="+91 9876543210"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67]"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={editFormData.email}
+                    onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                    placeholder="contact@company.com"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67]"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    Street Address
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.street}
+                    onChange={(e) => setEditFormData({ ...editFormData, street: e.target.value })}
+                    placeholder="Office #402, Trade Tower, Senapati Bapat Marg"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    City
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.city}
+                    onChange={(e) => setEditFormData({ ...editFormData, city: e.target.value })}
+                    placeholder="Mumbai"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    State
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.state}
+                    onChange={(e) => setEditFormData({ ...editFormData, state: e.target.value })}
+                    placeholder="e.g. Maharashtra"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    Country
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.country}
+                    onChange={(e) => setEditFormData({ ...editFormData, country: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    Pincode
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.pincode}
+                    onChange={(e) => setEditFormData({ ...editFormData, pincode: e.target.value })}
+                    placeholder="400013"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67]"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 flex items-center justify-end gap-3 border-t border-gray-100">
+                <button type="button" onClick={() => setEditModalContact(null)} className="btn-outline">
+                  Cancel
+                </button>
+                <button type="submit" disabled={updateMutation.isPending} className="btn-primary">
+                  {updateMutation.isPending ? 'Updating...' : 'Save Changes'}
                 </button>
               </div>
             </form>

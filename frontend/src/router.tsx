@@ -119,6 +119,10 @@ export const router = createBrowserRouter([
         path: 'purchases/bills',
         element: <VendorBillsPage />,
       },
+      {
+        path: 'purchases/payments',
+        element: <PaymentsPage defaultType="VENDOR" />,
+      },
 
       // Sales Routes
       {
@@ -128,6 +132,10 @@ export const router = createBrowserRouter([
       {
         path: 'sales/invoices',
         element: <CustomerInvoicesPage />,
+      },
+      {
+        path: 'sales/receipts',
+        element: <PaymentsPage defaultType="CUSTOMER" />,
       },
 
       // Accounting Operational Routes

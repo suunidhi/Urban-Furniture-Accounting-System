@@ -60,6 +60,9 @@ export interface Product {
   category?: ProductCategory;
   imageUrl?: string | null;
   status: RecordStatus;
+  paymentTerms?: string | null;
+  allowPartialPayment?: boolean;
+  defaultDueDate?: string | null;
 }
 
 export interface Account {
