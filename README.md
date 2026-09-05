@@ -343,6 +343,8 @@ The UI mockup is available on Excalidraw:
 
 - [suunidhi](https://github.com/suunidhi)
 - [ShlokStampwala](https://github.com/ShlokStampwala)
+- [Sujal140607](https://github.com/Sujal140607)
+- [devang-patel09](https://github.com/devang-patel09)
 
 ---
 
