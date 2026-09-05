@@ -1,7 +1,19 @@
 const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
-const { PrismaClient } = require('@prisma/client');
-const bcrypt = require('bcryptjs');
+
+function requireModule(pkgName) {
+  try {
+    return require(pkgName);
+  } catch (err) {
+    return require(path.resolve(__dirname, '../backend/node_modules', pkgName));
+  }
+}
+
+try {
+  requireModule('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+} catch (_) {}
+
+const { PrismaClient } = requireModule('@prisma/client');
+const bcrypt = requireModule('bcryptjs');
 
 const prisma = new PrismaClient();
 
@@ -1271,31 +1283,344 @@ async function main() {
   // ==========================================
   console.log('Seeding Vendors...');
   const vendorsData = [
-    { name: 'Azure Furniture', type: 'VENDOR', email: 'vendor@azurefurniture.com', mobile: '+91 9876543210', street: '42 Industrial Area, Phase 2', city: 'Mumbai', state: 'Maharashtra', country: 'India', pincode: '400013', imageUrl: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
-    { name: 'Rahul Sharma', type: 'VENDOR', email: 'rahul.sharma@example.com', mobile: '+91 9090090909', street: '15 Civil Lines', city: 'Delhi', state: 'Delhi', country: 'India', pincode: '110054', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
-    { name: 'Supplier 3 Inc', type: 'VENDOR', email: 'supplier3@example.com', mobile: '+91 9000000003', street: 'Street 3', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411003', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
-    { name: 'Supplier 4 Inc', type: 'VENDOR', email: 'supplier4@example.com', mobile: '+91 9000000004', street: 'Street 4', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411004', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
-    { name: 'Supplier 5 Inc', type: 'VENDOR', email: 'supplier5@example.com', mobile: '+91 9000000005', street: 'Street 5', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411005', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
-    { name: 'Supplier 6 Inc', type: 'VENDOR', email: 'supplier6@example.com', mobile: '+91 9000000006', street: 'Street 6', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411006', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
-    { name: 'Supplier 7 Inc', type: 'VENDOR', email: 'supplier7@example.com', mobile: '+91 9000000007', street: 'Street 7', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411007', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
-    { name: 'Supplier 8 Inc', type: 'VENDOR', email: 'supplier8@example.com', mobile: '+91 9000000008', street: 'Street 8', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411008', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
-    { name: 'Supplier 9 Inc', type: 'VENDOR', email: 'supplier9@example.com', mobile: '+91 9000000009', street: 'Street 9', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411009', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
-    { name: 'Supplier 10 Inc', type: 'VENDOR', email: 'supplier10@example.com', mobile: '+91 9000000010', street: 'Street 10', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411000', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
-    { name: 'Supplier 11 Inc', type: 'VENDOR', email: 'supplier11@example.com', mobile: '+91 9000000011', street: 'Street 11', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411001', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
-    { name: 'Supplier 12 Inc', type: 'VENDOR', email: 'supplier12@example.com', mobile: '+91 9000000012', street: 'Street 12', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411002', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
-    { name: 'Supplier 13 Inc', type: 'VENDOR', email: 'supplier13@example.com', mobile: '+91 9000000013', street: 'Street 13', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411003', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
-    { name: 'Supplier 14 Inc', type: 'VENDOR', email: 'supplier14@example.com', mobile: '+91 9000000014', street: 'Street 14', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411004', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
-    { name: 'Supplier 15 Inc', type: 'VENDOR', email: 'supplier15@example.com', mobile: '+91 9000000015', street: 'Street 15', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411005', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
-    { name: 'Supplier 16 Inc', type: 'VENDOR', email: 'supplier16@example.com', mobile: '+91 9000000016', street: 'Street 16', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411006', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
-    { name: 'Supplier 17 Inc', type: 'VENDOR', email: 'supplier17@example.com', mobile: '+91 9000000017', street: 'Street 17', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411007', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
-    { name: 'Supplier 18 Inc', type: 'VENDOR', email: 'supplier18@example.com', mobile: '+91 9000000018', street: 'Street 18', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411008', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
-    { name: 'Supplier 19 Inc', type: 'VENDOR', email: 'supplier19@example.com', mobile: '+91 9000000019', street: 'Street 19', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411009', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
-    { name: 'Supplier 20 Inc', type: 'VENDOR', email: 'supplier20@example.com', mobile: '+91 9000000020', street: 'Street 20', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411000', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
-    { name: 'Supplier 21 Inc', type: 'VENDOR', email: 'supplier21@example.com', mobile: '+91 9000000021', street: 'Street 21', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411001', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
-    { name: 'Supplier 22 Inc', type: 'VENDOR', email: 'supplier22@example.com', mobile: '+91 9000000022', street: 'Street 22', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411002', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
-    { name: 'Supplier 23 Inc', type: 'VENDOR', email: 'supplier23@example.com', mobile: '+91 9000000023', street: 'Street 23', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411003', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
-    { name: 'Supplier 24 Inc', type: 'VENDOR', email: 'supplier24@example.com', mobile: '+91 9000000024', street: 'Street 24', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411004', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
-    { name: 'Supplier 25 Inc', type: 'VENDOR', email: 'supplier25@example.com', mobile: '+91 9000000025', street: 'Street 25', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411005', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
+    {
+      name: 'Azure Furniture',
+      type: 'VENDOR',
+      email: 'vendor@azurefurniture.com',
+      mobile: '+91 9876543210',
+      street: '42 Industrial Area, Phase 2',
+      city: 'Mumbai',
+      state: 'Maharashtra',
+      country: 'India',
+      pincode: '400013',
+      imageUrl: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
+    {
+      name: 'Rahul Sharma',
+      type: 'VENDOR',
+      email: 'rahul.sharma@example.com',
+      mobile: '+91 9090090909',
+      street: '15 Civil Lines',
+      city: 'Delhi',
+      state: 'Delhi',
+      country: 'India',
+      pincode: '110054',
+      imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
+    {
+      name: 'ForestCraft Hardwoods & Timber Ltd',
+      type: 'VENDOR',
+      email: 'sales@forestcrafthardwoods.in',
+      mobile: '+91 291 274 5601',
+      street: 'Plot 12-14, Sangaria Industrial Estate',
+      city: 'Jodhpur',
+      state: 'Rajasthan',
+      country: 'India',
+      pincode: '342005',
+      imageUrl: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
+    {
+      name: 'Malabar Teak & Rosewood Merchants',
+      type: 'VENDOR',
+      email: 'procure@malabarteak.com',
+      mobile: '+91 484 266 7890',
+      street: 'Willingdon Island Wharf Road',
+      city: 'Kochi',
+      state: 'Kerala',
+      country: 'India',
+      pincode: '682003',
+      imageUrl: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
+    {
+      name: 'Nilgiri Pine & Engineered Wood Co',
+      type: 'VENDOR',
+      email: 'orders@nilgiripine.in',
+      mobile: '+91 422 249 1122',
+      street: 'Mettupalayam Road Industrial Zone',
+      city: 'Coimbatore',
+      state: 'Tamil Nadu',
+      country: 'India',
+      pincode: '641029',
+      imageUrl: 'https://images.unsplash.com/photo-1538688525198-9b88f6f53126?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
+    {
+      name: 'Royal Oak European Lumber Imports',
+      type: 'VENDOR',
+      email: 'logistics@royaloak-lumber.de',
+      mobile: '+49 40 3344 5566',
+      street: 'Hafenstraße 88, Speicherstadt',
+      city: 'Hamburg',
+      state: 'Hamburg',
+      country: 'Germany',
+      pincode: '20457',
+      imageUrl: 'https://images.unsplash.com/photo-1540518614846-7ede433c4550?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
+    {
+      name: 'VelvetTouch Textiles & Furnishing Mills',
+      type: 'VENDOR',
+      email: 'contact@velvettouchfabrics.com',
+      mobile: '+91 261 234 8901',
+      street: 'Ring Road Textile Market, Block D',
+      city: 'Surat',
+      state: 'Gujarat',
+      country: 'India',
+      pincode: '395002',
+      imageUrl: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
+    {
+      name: 'Tuscan Heritage Leather Tannery SRL',
+      type: 'VENDOR',
+      email: 'exports@tuscanleather.it',
+      mobile: '+39 055 876 5432',
+      street: 'Via del Cuoio 45',
+      city: 'Florence',
+      state: 'Tuscany',
+      country: 'Italy',
+      pincode: '50123',
+      imageUrl: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
+    {
+      name: 'EcoWeave Organic Linen & Jute Works',
+      type: 'VENDOR',
+      email: 'supply@ecoweaveindia.org',
+      mobile: '+91 4324 271 345',
+      street: 'Karur Handloom Cluster Phase 1',
+      city: 'Karur',
+      state: 'Tamil Nadu',
+      country: 'India',
+      pincode: '639004',
+      imageUrl: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
+    {
+      name: 'Royal Loom Jacquard & Tapestry Guild',
+      type: 'VENDOR',
+      email: 'guild@royalloomfabrics.in',
+      mobile: '+91 542 250 8899',
+      street: 'Weavers Colony, Chowkaghat',
+      city: 'Varanasi',
+      state: 'Uttar Pradesh',
+      country: 'India',
+      pincode: '221002',
+      imageUrl: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
+    {
+      name: 'Titan Steel & Tubular Frame Dynamics',
+      type: 'VENDOR',
+      email: 'b2b@titansteelframes.com',
+      mobile: '+91 20 2712 4455',
+      street: 'MIDC Industrial Area, Bhosari',
+      city: 'Pune',
+      state: 'Maharashtra',
+      country: 'India',
+      pincode: '411026',
+      imageUrl: 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
+    {
+      name: 'Hettich & Hafele Authorized Hardware Dist',
+      type: 'VENDOR',
+      email: 'inquiry@premiumfittings.in',
+      mobile: '+91 22 6123 9900',
+      street: 'Andheri Kurla Road, Sakinaka',
+      city: 'Mumbai',
+      state: 'Maharashtra',
+      country: 'India',
+      pincode: '400072',
+      imageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
+    {
+      name: 'Bharat Brass & Architectural Ironmongery',
+      type: 'VENDOR',
+      email: 'export@bharatbrassguild.com',
+      mobile: '+91 571 240 3322',
+      street: 'Hardware Hub, Pala Road',
+      city: 'Aligarh',
+      state: 'Uttar Pradesh',
+      country: 'India',
+      pincode: '202001',
+      imageUrl: 'https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
+    {
+      name: 'Sleek Extrusions & Aluminum Trims LLP',
+      type: 'VENDOR',
+      email: 'sales@sleekextrusions.in',
+      mobile: '+91 79 2583 6710',
+      street: 'GIDC Industrial Estate, Vatva',
+      city: 'Ahmedabad',
+      state: 'Gujarat',
+      country: 'India',
+      pincode: '382445',
+      imageUrl: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
+    {
+      name: 'SleepWell High-Resilience PU Foam Corp',
+      type: 'VENDOR',
+      email: 'corporate@sleepwellfoamtech.com',
+      mobile: '+91 120 456 7800',
+      street: 'Sector 63, Electronic City Phase 3',
+      city: 'Noida',
+      state: 'Uttar Pradesh',
+      country: 'India',
+      pincode: '201307',
+      imageUrl: 'https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
+    {
+      name: 'OrthoComfort Natural Latex Products',
+      type: 'VENDOR',
+      email: 'plantation@ortholatex.in',
+      mobile: '+91 481 257 2341',
+      street: 'Rubber Board Junction, Kanjikuzhy',
+      city: 'Kottayam',
+      state: 'Kerala',
+      country: 'India',
+      pincode: '686004',
+      imageUrl: 'https://images.unsplash.com/photo-1631679706909-1844bbd07221?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
+    {
+      name: 'Asian Paints WoodTech Industrial Finishes',
+      type: 'VENDOR',
+      email: 'woodtech@asianpaints-contract.in',
+      mobile: '+91 22 6218 1000',
+      street: 'Santacruz Chembur Link Road',
+      city: 'Mumbai',
+      state: 'Maharashtra',
+      country: 'India',
+      pincode: '400055',
+      imageUrl: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
+    {
+      name: 'EcoStain Organic Waxes & Natural Oils',
+      type: 'VENDOR',
+      email: 'contact@ecostainfinishes.org',
+      mobile: '+91 80 2311 4567',
+      street: 'Peenya 4th Phase Industrial Area',
+      city: 'Bengaluru',
+      state: 'Karnataka',
+      country: 'India',
+      pincode: '560058',
+      imageUrl: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
+    {
+      name: 'Saint-Gobain Architectural Glass Systems',
+      type: 'VENDOR',
+      email: 'solutions@saint-gobain-glass.in',
+      mobile: '+91 44 4567 8900',
+      street: 'Sriperumbudur High-Tech SEZ',
+      city: 'Chennai',
+      state: 'Tamil Nadu',
+      country: 'India',
+      pincode: '602105',
+      imageUrl: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
+    {
+      name: 'Carrara Italian Marble & Granite Importers',
+      type: 'VENDOR',
+      email: 'slabs@carraramarbleindia.com',
+      mobile: '+91 1463 245 800',
+      street: 'Madanganj Marble Zone',
+      city: 'Kishangarh',
+      state: 'Rajasthan',
+      country: 'India',
+      pincode: '305801',
+      imageUrl: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
+    {
+      name: 'Lucite Acrylic Crafters & Resins',
+      type: 'VENDOR',
+      email: 'custom@lucitecrafthub.com',
+      mobile: '+91 40 2300 7711',
+      street: 'Cherlapally Industrial Estate Phase 2',
+      city: 'Hyderabad',
+      state: 'Telangana',
+      country: 'India',
+      pincode: '500051',
+      imageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
+    {
+      name: 'PackWell Heavy-Duty Corrugated Packaging',
+      type: 'VENDOR',
+      email: 'dispatch@packwellboxes.com',
+      mobile: '+91 129 401 2233',
+      street: 'Sector 24 Packaging Corridor',
+      city: 'Faridabad',
+      state: 'Haryana',
+      country: 'India',
+      pincode: '121005',
+      imageUrl: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
+    {
+      name: 'SafeMove Industrial Freight & Global Logistics',
+      type: 'VENDOR',
+      email: 'fleet@safemovelogistics.in',
+      mobile: '+91 22 2789 6600',
+      street: 'JNPT Logistics Park, Dronagiri',
+      city: 'Navi Mumbai',
+      state: 'Maharashtra',
+      country: 'India',
+      pincode: '400707',
+      imageUrl: 'https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
+    {
+      name: 'Bosch & Makita CNC Tooling Supplies',
+      type: 'VENDOR',
+      email: 'tooling@bosch-industrial.in',
+      mobile: '+91 80 6752 1100',
+      street: 'Hosur Road, Electronic City',
+      city: 'Bengaluru',
+      state: 'Karnataka',
+      country: 'India',
+      pincode: '560100',
+      imageUrl: 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
+    {
+      name: 'Apex Industrial Abrasives & Screws',
+      type: 'VENDOR',
+      email: 'supplies@apexabrasives.in',
+      mobile: '+91 161 280 5566',
+      street: 'Focal Point Phase 5',
+      city: 'Ludhiana',
+      state: 'Punjab',
+      country: 'India',
+      pincode: '141010',
+      imageUrl: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
+    {
+      name: 'Delta Polymer Adhesives & Wood Glue',
+      type: 'VENDOR',
+      email: 'order@deltabondchemicals.com',
+      mobile: '+91 265 264 3300',
+      street: 'Makarpura GIDC Industrial Area',
+      city: 'Vadodara',
+      state: 'Gujarat',
+      country: 'India',
+      pincode: '390010',
+      imageUrl: 'https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?w=500&auto=format&fit=crop&q=80',
+      status: 'ACTIVE',
+    },
   ];
 
   const contacts = {};
@@ -2709,9 +3034,17 @@ async function main() {
   // ==========================================
   console.log('Seeding Analytic Accounts...');
   const analyticsData = [
+    { name: 'Corporate Commercial Sales', type: 'INCOME' },
+    { name: 'Residential Luxury Furnishings', type: 'INCOME' },
+    { name: 'Institutional & Hospitality Projects', type: 'INCOME' },
+    { name: 'Direct E-Commerce & Retail', type: 'INCOME' },
     { name: 'Furniture Operations', type: 'EXPENSE' },
     { name: 'Project 1', type: 'EXPENSE' },
-    { name: 'Corporate Commercial Sales', type: 'INCOME' },
+    { name: 'Timber & Raw Material Sourcing', type: 'EXPENSE' },
+    { name: 'Workshop Fabrication & Assembly', type: 'EXPENSE' },
+    { name: 'Showroom Leasing & Operations', type: 'EXPENSE' },
+    { name: 'Freight, Warehousing & Distribution', type: 'EXPENSE' },
+    { name: 'Marketing & Brand Promotion', type: 'EXPENSE' },
   ];
 
   const analytics = {};
@@ -2724,27 +3057,300 @@ async function main() {
   }
 
   // ==========================================
-  // 8. Demo Budget
+  // 8. Budgets (22 Profit-Focused Records: Income > Expense)
   // ==========================================
-  console.log('Seeding Demo Budget...');
-  const existingBudget = await prisma.budget.findFirst({
-    where: { name: 'January 2026 Operations' },
-  });
+  console.log('Seeding 22 Profit-Focused Budgets (Income Targets > Expense Limits)...');
+  const budgetsData = [
+    // --- 10 INCOME BUDGETS (Total Target: ₹5,35,00,000) ---
+    {
+      name: 'Q1 2026 Corporate Commercial Sales Target',
+      startDate: new Date('2026-01-01T00:00:00Z'),
+      endDate: new Date('2026-03-31T23:59:59Z'),
+      responsibleName: 'Rahul Sharma',
+      analyticName: 'Corporate Commercial Sales',
+      type: 'INCOME',
+      committedAmount: 6500000.0,
+      status: 'CONFIRMED',
+      notes: 'Projected enterprise B2B sales contracts for tech hubs in Bengaluru and Hyderabad',
+    },
+    {
+      name: 'Q1 2026 Residential Luxury Living Collections',
+      startDate: new Date('2026-01-01T00:00:00Z'),
+      endDate: new Date('2026-03-31T23:59:59Z'),
+      responsibleName: 'Aarav Sharma',
+      analyticName: 'Residential Luxury Furnishings',
+      type: 'INCOME',
+      committedAmount: 4500000.0,
+      status: 'CONFIRMED',
+      notes: 'Direct-to-consumer high-margin sofa and dining sets across premium metro showrooms',
+    },
+    {
+      name: 'Q1 2026 Direct E-Commerce & Online Store',
+      startDate: new Date('2026-01-01T00:00:00Z'),
+      endDate: new Date('2026-03-31T23:59:59Z'),
+      responsibleName: 'Rahul Sharma',
+      analyticName: 'Direct E-Commerce & Retail',
+      type: 'INCOME',
+      committedAmount: 2800000.0,
+      status: 'CONFIRMED',
+      notes: 'Omnichannel D2C web storefront sales target with nationwide delivery',
+    },
+    {
+      name: 'Q2 2026 Hospitality & Boutique Resorts Supply',
+      startDate: new Date('2026-04-01T00:00:00Z'),
+      endDate: new Date('2026-06-30T23:59:59Z'),
+      responsibleName: 'Vikram Malhotra',
+      analyticName: 'Institutional & Hospitality Projects',
+      type: 'INCOME',
+      committedAmount: 8500000.0,
+      status: 'CONFIRMED',
+      notes: 'Bulk luxury suites furnishing contracts for Goa and Rajasthan heritage hotels',
+    },
+    {
+      name: 'Q2 2026 Co-Working Spaces Commercial Turnkey',
+      startDate: new Date('2026-04-01T00:00:00Z'),
+      endDate: new Date('2026-06-30T23:59:59Z'),
+      responsibleName: 'Rahul Sharma',
+      analyticName: 'Corporate Commercial Sales',
+      type: 'INCOME',
+      committedAmount: 5500000.0,
+      status: 'CONFIRMED',
+      notes: 'Turnkey workstations, ergonomic task chairs, and meeting pods for shared offices',
+    },
+    {
+      name: 'Q2 2026 High-End Villa Interior Packages',
+      startDate: new Date('2026-04-01T00:00:00Z'),
+      endDate: new Date('2026-06-30T23:59:59Z'),
+      responsibleName: 'Aarav Sharma',
+      analyticName: 'Residential Luxury Furnishings',
+      type: 'INCOME',
+      committedAmount: 4200000.0,
+      status: 'CONFIRMED',
+      notes: 'Custom teakwood wardrobes and solid wood king beds for luxury residences',
+    },
+    {
+      name: 'Q3 2026 Festive Season Flagship Showroom Sales',
+      startDate: new Date('2026-07-01T00:00:00Z'),
+      endDate: new Date('2026-09-30T23:59:59Z'),
+      responsibleName: 'Rahul Sharma',
+      analyticName: 'Residential Luxury Furnishings',
+      type: 'INCOME',
+      committedAmount: 7500000.0,
+      status: 'CONFIRMED',
+      notes: 'Diwali and festive pre-booking sales volume across Mumbai, Delhi, and Bengaluru stores',
+    },
+    {
+      name: 'Q3 2026 Institutional Education & Campus Furnishing',
+      startDate: new Date('2026-07-01T00:00:00Z'),
+      endDate: new Date('2026-09-30T23:59:59Z'),
+      responsibleName: 'Vikram Malhotra',
+      analyticName: 'Institutional & Hospitality Projects',
+      type: 'INCOME',
+      committedAmount: 4800000.0,
+      status: 'CONFIRMED',
+      notes: 'Auditorium seating, library desks, and modular hostel furniture contracts',
+    },
+    {
+      name: 'Q4 2026 Year-End Corporate Office Expansions',
+      startDate: new Date('2026-10-01T00:00:00Z'),
+      endDate: new Date('2026-12-31T23:59:59Z'),
+      responsibleName: 'Rahul Sharma',
+      analyticName: 'Corporate Commercial Sales',
+      type: 'INCOME',
+      committedAmount: 6000000.0,
+      status: 'REVISED',
+      notes: 'FY closing corporate capex orders for premium executive cabins and conference tables',
+    },
+    {
+      name: 'Q4 2026 Global Architectural Export Pipeline',
+      startDate: new Date('2026-10-01T00:00:00Z'),
+      endDate: new Date('2026-12-31T23:59:59Z'),
+      responsibleName: 'Vikram Malhotra',
+      analyticName: 'Corporate Commercial Sales',
+      type: 'INCOME',
+      committedAmount: 3200000.0,
+      status: 'DRAFT',
+      notes: 'Initial export shipments to UAE and UK interior fit-out partners',
+    },
 
-  if (!existingBudget && contacts['Rahul Sharma'] && analytics['Furniture Operations']) {
-    await prisma.budget.create({
-      data: {
-        name: 'January 2026 Operations',
-        startDate: new Date('2026-01-01T00:00:00Z'),
-        endDate: new Date('2026-01-31T23:59:59Z'),
-        responsibleId: contacts['Rahul Sharma'].id,
-        analyticAccountId: analytics['Furniture Operations'].id,
-        type: 'EXPENSE',
-        committedAmount: 200000.0,
-        status: 'CONFIRMED',
-        notes: 'Monthly furniture procurement & maintenance budget',
-      },
-    });
+    // --- 12 EXPENSE BUDGETS (Total Caps: ₹1,72,00,000 | Net Operating Margin: ~68% Profit) ---
+    {
+      name: 'January 2026 Operations',
+      startDate: new Date('2026-01-01T00:00:00Z'),
+      endDate: new Date('2026-01-31T23:59:59Z'),
+      responsibleName: 'Rahul Sharma',
+      analyticName: 'Furniture Operations',
+      type: 'EXPENSE',
+      committedAmount: 200000.0,
+      status: 'CONFIRMED',
+      notes: 'Monthly furniture procurement & maintenance budget',
+    },
+    {
+      name: 'Q1 2026 Hardwood & Timber Sourcing Cap',
+      startDate: new Date('2026-01-01T00:00:00Z'),
+      endDate: new Date('2026-03-31T23:59:59Z'),
+      responsibleName: 'Rahul Sharma',
+      analyticName: 'Timber & Raw Material Sourcing',
+      type: 'EXPENSE',
+      committedAmount: 2400000.0,
+      status: 'CONFIRMED',
+      notes: 'Certified teak, sheesham, and European oak bulk procurement limits',
+    },
+    {
+      name: 'Q1 2026 Workshop CNC Fabrication & Tooling',
+      startDate: new Date('2026-01-01T00:00:00Z'),
+      endDate: new Date('2026-03-31T23:59:59Z'),
+      responsibleName: 'Rahul Sharma',
+      analyticName: 'Workshop Fabrication & Assembly',
+      type: 'EXPENSE',
+      committedAmount: 1500000.0,
+      status: 'CONFIRMED',
+      notes: 'Precision joinery, carpentry labor, and machine maintenance expenditure ceiling',
+    },
+    {
+      name: 'Q1 2026 Showroom Experience Center Utilities',
+      startDate: new Date('2026-01-01T00:00:00Z'),
+      endDate: new Date('2026-03-31T23:59:59Z'),
+      responsibleName: 'Aarav Sharma',
+      analyticName: 'Showroom Leasing & Operations',
+      type: 'EXPENSE',
+      committedAmount: 850000.0,
+      status: 'CONFIRMED',
+      notes: 'Showroom lighting, power, security, and visual merchandising expenses',
+    },
+    {
+      name: 'Q1 2026 Fleet Freight & Warehousing Logistics',
+      startDate: new Date('2026-01-01T00:00:00Z'),
+      endDate: new Date('2026-03-31T23:59:59Z'),
+      responsibleName: 'Rahul Sharma',
+      analyticName: 'Freight, Warehousing & Distribution',
+      type: 'EXPENSE',
+      committedAmount: 650000.0,
+      status: 'CONFIRMED',
+      notes: 'Pan-India inter-city transport and last-mile furniture assembly transport',
+    },
+    {
+      name: 'Q2 2026 Premium Upholstery Fabrics & Leather',
+      startDate: new Date('2026-04-01T00:00:00Z'),
+      endDate: new Date('2026-06-30T23:59:59Z'),
+      responsibleName: 'Rahul Sharma',
+      analyticName: 'Timber & Raw Material Sourcing',
+      type: 'EXPENSE',
+      committedAmount: 2800000.0,
+      status: 'CONFIRMED',
+      notes: 'Italian full-grain leather, velvet, and performance organic fabric stocks',
+    },
+    {
+      name: 'Q2 2026 Architectural Hardware & Fasteners',
+      startDate: new Date('2026-04-01T00:00:00Z'),
+      endDate: new Date('2026-06-30T23:59:59Z'),
+      responsibleName: 'Rahul Sharma',
+      analyticName: 'Timber & Raw Material Sourcing',
+      type: 'EXPENSE',
+      committedAmount: 1200000.0,
+      status: 'CONFIRMED',
+      notes: 'Hafele/Hettich soft-close channels, brass hinges, and gas lift springs',
+    },
+    {
+      name: 'Q2 2026 Pan-India Distribution & Packaging',
+      startDate: new Date('2026-04-01T00:00:00Z'),
+      endDate: new Date('2026-06-30T23:59:59Z'),
+      responsibleName: 'Vikram Malhotra',
+      analyticName: 'Freight, Warehousing & Distribution',
+      type: 'EXPENSE',
+      committedAmount: 900000.0,
+      status: 'CONFIRMED',
+      notes: 'Multi-layer corrugated boxing and transit insurance for hospitality deliveries',
+    },
+    {
+      name: 'Q3 2026 PU Foam & Spring Mattress Assemblies',
+      startDate: new Date('2026-07-01T00:00:00Z'),
+      endDate: new Date('2026-09-30T23:59:59Z'),
+      responsibleName: 'Rahul Sharma',
+      analyticName: 'Workshop Fabrication & Assembly',
+      type: 'EXPENSE',
+      committedAmount: 2200000.0,
+      status: 'CONFIRMED',
+      notes: 'High-resilience foam blocks, pocket springs, and natural latex cushioning allocation',
+    },
+    {
+      name: 'Q3 2026 Festive Marketing & Digital Campaigns',
+      startDate: new Date('2026-07-01T00:00:00Z'),
+      endDate: new Date('2026-09-30T23:59:59Z'),
+      responsibleName: 'Aarav Sharma',
+      analyticName: 'Marketing & Brand Promotion',
+      type: 'EXPENSE',
+      committedAmount: 1800000.0,
+      status: 'CONFIRMED',
+      notes: 'Influencer decor showcases, search marketing, and print catalogs for festive collection',
+    },
+    {
+      name: 'Q3 2026 WoodTech Stains & Finishing Chemical Supplies',
+      startDate: new Date('2026-07-01T00:00:00Z'),
+      endDate: new Date('2026-09-30T23:59:59Z'),
+      responsibleName: 'Rahul Sharma',
+      analyticName: 'Timber & Raw Material Sourcing',
+      type: 'EXPENSE',
+      committedAmount: 1100000.0,
+      status: 'CONFIRMED',
+      notes: 'Polyurethane coats, natural plant oils, and low-VOC clear varnishes',
+    },
+    {
+      name: 'Q4 2026 Year-End Production Line Overhaul',
+      startDate: new Date('2026-10-01T00:00:00Z'),
+      endDate: new Date('2026-12-31T23:59:59Z'),
+      responsibleName: 'Rahul Sharma',
+      analyticName: 'Workshop Fabrication & Assembly',
+      type: 'EXPENSE',
+      committedAmount: 1600000.0,
+      status: 'REVISED',
+      notes: 'Preventive CNC calibration, dust extraction filters, and safety tooling upgrades',
+    },
+  ];
+
+  for (const b of budgetsData) {
+    const respId = (contacts[b.responsibleName] && contacts[b.responsibleName].id) ||
+                   (contacts['Rahul Sharma'] && contacts['Rahul Sharma'].id) ||
+                   null;
+    const anId = (analytics[b.analyticName] && analytics[b.analyticName].id) ||
+                 (analytics['Corporate Commercial Sales'] && analytics['Corporate Commercial Sales'].id) ||
+                 (analytics['Furniture Operations'] && analytics['Furniture Operations'].id);
+
+    if (anId) {
+      const existingB = await prisma.budget.findFirst({
+        where: { name: b.name },
+      });
+
+      if (!existingB) {
+        await prisma.budget.create({
+          data: {
+            name: b.name,
+            startDate: b.startDate,
+            endDate: b.endDate,
+            responsibleId: respId,
+            analyticAccountId: anId,
+            type: b.type,
+            committedAmount: b.committedAmount,
+            status: b.status,
+            notes: b.notes,
+          },
+        });
+      } else {
+        await prisma.budget.update({
+          where: { id: existingB.id },
+          data: {
+            startDate: b.startDate,
+            endDate: b.endDate,
+            responsibleId: respId,
+            analyticAccountId: anId,
+            type: b.type,
+            committedAmount: b.committedAmount,
+            status: b.status,
+            notes: b.notes,
+          },
+        });
+      }
+    }
   }
 
   
@@ -2768,104 +3374,113 @@ async function main() {
 
   // 25 Vendor Bills
   for (let i = 1; i <= 25; i++) {
-    const vendor = allVendors[i % allVendors.length];
-    const prod = allProducts[i % allProducts.length];
-    
-    const total = Number(prod.costPrice) * 2;
-    const bill = await prisma.vendorBill.create({
-      data: {
-        billNumber: `BILL-26-${String(i).padStart(4, '0')}`,
-        vendorId: vendor.id,
-        billDate: new Date('2026-01-10T00:00:00Z'),
-        dueDate: new Date('2026-02-10T00:00:00Z'),
-        totalAmount: total,
-        amountDue: total,
-        paidAmount: 0,
-        status: 'POSTED',
-        journalId: purchaseJournal.id,
-      }
-    });
-    
-    await prisma.journalEntry.create({
-      data: {
-        entryNumber: `JE-BILL-${i}`,
-        date: new Date('2026-01-10T00:00:00Z'),
-        journalId: purchaseJournal.id,
-        status: 'POSTED',
-        vendorBillId: bill.id,
-        items: {
-          create: [
-            {
-              accountId: purchaseExp.id,
-              analyticAccountId: opsAnalytic.id,
-              partnerId: vendor.id,
-              debit: total,
-              credit: 0
-            },
-            {
-              accountId: accountsPay.id,
-              partnerId: vendor.id,
-              debit: 0,
-              credit: total
-            }
-          ]
+    const billNumber = `BILL-26-${String(i).padStart(4, '0')}`;
+    const existingBill = await prisma.vendorBill.findUnique({ where: { billNumber } });
+    if (!existingBill) {
+      const vendor = allVendors[i % allVendors.length];
+      const prod = allProducts[i % allProducts.length];
+      
+      const total = Number(prod.costPrice) * 2;
+      const bill = await prisma.vendorBill.create({
+        data: {
+          billNumber,
+          vendorId: vendor.id,
+          billDate: new Date('2026-01-10T00:00:00Z'),
+          dueDate: new Date('2026-02-10T00:00:00Z'),
+          totalAmount: total,
+          amountDue: total,
+          paidAmount: 0,
+          status: 'POSTED',
+          journalId: purchaseJournal.id,
         }
-      }
-    });
+      });
+      
+      await prisma.journalEntry.create({
+        data: {
+          entryNumber: `JE-BILL-${i}`,
+          date: new Date('2026-01-10T00:00:00Z'),
+          journalId: purchaseJournal.id,
+          status: 'POSTED',
+          vendorBillId: bill.id,
+          items: {
+            create: [
+              {
+                accountId: purchaseExp.id,
+                analyticAccountId: opsAnalytic.id,
+                partnerId: vendor.id,
+                debit: total,
+                credit: 0
+              },
+              {
+                accountId: accountsPay.id,
+                partnerId: vendor.id,
+                debit: 0,
+                credit: total
+              }
+            ]
+          }
+        }
+      });
+    }
   }
 
   // 25 Sales Invoices
   for (let i = 1; i <= 25; i++) {
-    const customer = allCustomers[i % allCustomers.length];
-    const prod = allProducts[(i+5) % allProducts.length];
-    
-    const total = Number(prod.salesPrice) * 1;
-    const inv = await prisma.customerInvoice.create({
-      data: {
-        invoiceNumber: `INV-26-${String(i).padStart(4, '0')}`,
-        customerId: customer.id,
-        invoiceDate: new Date('2026-01-15T00:00:00Z'),
-        dueDate: new Date('2026-02-15T00:00:00Z'),
-        totalAmount: total,
-        amountDue: total,
-        paidAmount: 0,
-        status: 'POSTED',
-        journalId: salesJournal.id,
-      }
-    });
-    
-    await prisma.journalEntry.create({
-      data: {
-        entryNumber: `JE-INV-${i}`,
-        date: new Date('2026-01-15T00:00:00Z'),
-        journalId: salesJournal.id,
-        status: 'POSTED',
-        customerInvoiceId: inv.id,
-        items: {
-          create: [
-            {
-              accountId: accountsRec.id,
-              partnerId: customer.id,
-              debit: total,
-              credit: 0
-            },
-            {
-              accountId: salesIncomeAcc.id,
-              analyticAccountId: corpAnalytic.id,
-              partnerId: customer.id,
-              debit: 0,
-              credit: total
-            }
-          ]
+    const invoiceNumber = `INV-26-${String(i).padStart(4, '0')}`;
+    const existingInv = await prisma.customerInvoice.findUnique({ where: { invoiceNumber } });
+    if (!existingInv) {
+      const customer = allCustomers[i % allCustomers.length];
+      const prod = allProducts[(i+5) % allProducts.length];
+      
+      const total = Number(prod.salesPrice) * 1;
+      const inv = await prisma.customerInvoice.create({
+        data: {
+          invoiceNumber,
+          customerId: customer.id,
+          invoiceDate: new Date('2026-01-15T00:00:00Z'),
+          dueDate: new Date('2026-02-15T00:00:00Z'),
+          totalAmount: total,
+          amountDue: total,
+          paidAmount: 0,
+          status: 'POSTED',
+          journalId: salesJournal.id,
         }
-      }
-    });
+      });
+      
+      await prisma.journalEntry.create({
+        data: {
+          entryNumber: `JE-INV-${i}`,
+          date: new Date('2026-01-15T00:00:00Z'),
+          journalId: salesJournal.id,
+          status: 'POSTED',
+          customerInvoiceId: inv.id,
+          items: {
+            create: [
+              {
+                accountId: accountsRec.id,
+                partnerId: customer.id,
+                debit: total,
+                credit: 0
+              },
+              {
+                accountId: salesIncomeAcc.id,
+                analyticAccountId: corpAnalytic.id,
+                partnerId: customer.id,
+                debit: 0,
+                credit: total
+              }
+            ]
+          }
+        }
+      });
+    }
   }
   console.log('--- Urban Furniture Database Seeding Completed Successfully! ---');
   console.log(`Seeded Categories: ${Object.keys(categories).length}`);
   console.log(`Seeded Products: ${productsData.length}`);
   console.log(`Seeded Customers: ${customersData.length}`);
   console.log(`Seeded Vendors: ${vendorsData.length}`);
+  console.log(`Seeded Budgets: ${budgetsData.length}`);
 }
 
 main()
