@@ -338,6 +338,118 @@ export class SalesService {
     });
   }
 
+  static async updateInvoice(invoiceId: number, userRole: string, data: {
+    invoiceDate?: Date | string;
+    dueDate?: Date | string;
+    paymentTerms?: string | null;
+    journalId?: number;
+    reference?: string | null;
+    lines?: Array<{
+      id?: number;
+      productId: number;
+      description?: string | null;
+      accountId: number;
+      analyticAccountId?: number | null;
+      quantity: number;
+      unitPrice: number;
+      taxRate: number;
+    }>;
+  }) {
+    const invoice = await prisma.customerInvoice.findUnique({
+      where: { id: invoiceId },
+      include: { lines: true },
+    });
+
+    if (!invoice) throw new AppError('Customer invoice not found', 404);
+
+    if (invoice.status === InvoiceStatus.POSTED || invoice.status === InvoiceStatus.PAID || invoice.status === InvoiceStatus.PARTIALLY_PAID || invoice.status === InvoiceStatus.CANCELLED) {
+      throw new AppError(`Cannot edit an invoice with status ${invoice.status}`, 400);
+    }
+
+    if (invoice.status === InvoiceStatus.PENDING_APPROVAL && userRole !== 'ADMIN') {
+      throw new AppError('Only Admin can edit invoices pending approval', 403);
+    }
+
+    return await prisma.$transaction(async (tx) => {
+      let subtotal = Number(invoice.subtotal);
+      let taxAmount = Number(invoice.taxAmount);
+      let totalAmount = Number(invoice.totalAmount);
+
+      if (data.lines) {
+        await tx.customerInvoiceLine.deleteMany({ where: { customerInvoiceId: invoiceId } });
+
+        subtotal = 0;
+        taxAmount = 0;
+
+        const computedLines = data.lines.map((l) => {
+          const lineSubtotal = Number(l.quantity) * Number(l.unitPrice);
+          const lineTax = (lineSubtotal * (Number(l.taxRate) || 0)) / 100;
+          const lineTotal = lineSubtotal + lineTax;
+
+          subtotal += lineSubtotal;
+          taxAmount += lineTax;
+
+          return {
+            productId: l.productId,
+            description: l.description || null,
+            accountId: l.accountId,
+            analyticAccountId: l.analyticAccountId || null,
+            quantity: l.quantity,
+            unitPrice: l.unitPrice,
+            taxRate: l.taxRate || 0,
+            taxAmount: lineTax,
+            subtotal: lineSubtotal,
+            total: lineTotal,
+          };
+        });
+
+        totalAmount = subtotal + taxAmount;
+
+        await tx.customerInvoice.update({
+          where: { id: invoiceId },
+          data: {
+            lines: {
+              create: computedLines,
+            },
+          },
+        });
+      }
+
+      return await tx.customerInvoice.update({
+        where: { id: invoiceId },
+        data: {
+          reference: data.reference !== undefined ? data.reference : undefined,
+          invoiceDate: data.invoiceDate ? new Date(data.invoiceDate) : undefined,
+          dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
+          paymentTerms: data.paymentTerms !== undefined ? data.paymentTerms : undefined,
+          journalId: data.journalId !== undefined ? data.journalId : undefined,
+          subtotal,
+          taxAmount,
+          totalAmount,
+          amountDue: totalAmount, // Assuming no payments made yet
+        },
+        include: {
+          customer: true,
+          journal: true,
+          lines: { include: { product: true, account: true, analyticAccount: true } },
+        },
+      });
+    });
+  }
+
+  static async submitForApproval(invoiceId: number) {
+    const invoice = await prisma.customerInvoice.findUnique({ where: { id: invoiceId } });
+    if (!invoice) throw new AppError('Customer invoice not found', 404);
+    if (invoice.status !== InvoiceStatus.DRAFT) {
+      throw new AppError(`Cannot submit an invoice with status ${invoice.status}`, 400);
+    }
+
+    return await prisma.customerInvoice.update({
+      where: { id: invoiceId },
+      data: { status: InvoiceStatus.PENDING_APPROVAL },
+    });
+  }
+
   // ==================== POST CUSTOMER INVOICE (STRICT DOUBLE-ENTRY) ====================
   static async postInvoice(invoiceId: number) {
     const invoice = await prisma.customerInvoice.findUnique({
@@ -351,7 +463,7 @@ export class SalesService {
     });
 
     if (!invoice) throw new AppError('Customer invoice not found', 404);
-    if (invoice.status !== InvoiceStatus.DRAFT) {
+    if (invoice.status !== InvoiceStatus.DRAFT && invoice.status !== InvoiceStatus.PENDING_APPROVAL) {
       throw new AppError(`Cannot post an invoice with status ${invoice.status}`, 400);
     }
     if (!invoice.lines || invoice.lines.length === 0) {

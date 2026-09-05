@@ -7,6 +7,7 @@ import {
   vendorBillSchema,
   salesOrderSchema,
   customerInvoiceSchema,
+  updateInvoiceSchema,
   paymentRegistrationSchema,
 } from '../validators/transactions';
 import { successResponse } from '../utils/response';
@@ -214,6 +215,28 @@ export class TransactionController {
       const validated = customerInvoiceSchema.parse(req.body);
       const invoice = await SalesService.createInvoice(validated as any);
       return successResponse(res, invoice, 'Customer invoice created successfully', 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateInvoice(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const validated = updateInvoiceSchema.parse(req.body);
+      const userRole = req.user?.role || 'ACCOUNTANT';
+      const invoice = await SalesService.updateInvoice(id, userRole, validated as any);
+      return successResponse(res, invoice, 'Customer invoice updated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async submitInvoiceForApproval(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const invoice = await SalesService.submitForApproval(id);
+      return successResponse(res, invoice, 'Invoice submitted for approval');
     } catch (error) {
       next(error);
     }

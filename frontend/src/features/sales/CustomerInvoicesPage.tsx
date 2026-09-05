@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { 
   CustomerInvoice, 
@@ -34,9 +35,12 @@ export const CustomerInvoicesPage: React.FC = () => {
   const debouncedSearch = useDebounce(search, 350);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [modalOpen, setModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [detailInvoiceId, setDetailInvoiceId] = useState<number | null>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const { isAdmin } = useAuth() || { isAdmin: false };
 
   // Direct Invoice Form State
   const [formData, setFormData] = useState({
@@ -172,6 +176,38 @@ export const CustomerInvoicesPage: React.FC = () => {
     },
   });
 
+  // Update Invoice Mutation
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, payload }: { id: number; payload: any }) => {
+      const res = await api.put(`/invoices/${id}`, payload);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['customer-invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['customer-invoice', detailInvoiceId] });
+      setModalOpen(false);
+      setError(null);
+    },
+    onError: (err: any) => {
+      setError(err.response?.data?.message || 'Failed to update customer invoice.');
+    },
+  });
+
+  // Submit Approval Mutation
+  const submitApprovalMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await api.post(`/invoices/${id}/submit-approval`);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customer-invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['customer-invoice', detailInvoiceId] });
+    },
+    onError: (err: any) => {
+      alert(err.response?.data?.message || 'Failed to submit customer invoice for approval.');
+    },
+  });
+
   // Register Payment Mutation
   const payMutation = useMutation({
     mutationFn: async (payload: any) => {
@@ -273,6 +309,31 @@ export const CustomerInvoicesPage: React.FC = () => {
       ],
     });
     setError(null);
+    setIsEditMode(false);
+    setModalOpen(true);
+  };
+
+  const openEditDialog = (inv: CustomerInvoice) => {
+    setFormData({
+      customerId: inv.customerId,
+      invoiceDate: new Date(inv.invoiceDate).toISOString().split('T')[0],
+      dueDate: new Date(inv.dueDate).toISOString().split('T')[0],
+      journalId: inv.journalId,
+      reference: inv.reference || '',
+      paymentTerms: inv.paymentTerms || '',
+      lines: (inv.lines || []).map((l: any) => ({
+        productId: l.productId,
+        description: l.description || '',
+        accountId: l.accountId,
+        analyticAccountId: l.analyticAccountId || null,
+        quantity: l.quantity,
+        unitPrice: l.unitPrice,
+        taxRate: l.taxRate,
+      })),
+    });
+    setError(null);
+    setIsEditMode(true);
+    setDetailInvoiceId(inv.id);
     setModalOpen(true);
   };
 
@@ -287,6 +348,20 @@ export const CustomerInvoicesPage: React.FC = () => {
       notes: '',
     });
     setPaymentModalOpen(true);
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (formData.lines.length === 0) {
+      setError('At least one line item is required.');
+      return;
+    }
+    
+    if (isEditMode && detailInvoiceId) {
+      updateMutation.mutate({ id: detailInvoiceId, payload: formData });
+    } else {
+      createMutation.mutate(formData);
+    }
   };
 
   const handlePaymentSubmit = (e: React.FormEvent) => {
@@ -309,6 +384,8 @@ export const CustomerInvoicesPage: React.FC = () => {
     switch (status) {
       case 'DRAFT':
         return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">Draft</span>;
+      case 'PENDING_APPROVAL':
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 border border-amber-200">Pending Approval</span>;
       case 'POSTED':
         return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">Posted</span>;
       case 'PARTIALLY_PAID':
@@ -478,7 +555,29 @@ export const CustomerInvoicesPage: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2">
+                {(invoiceDetail.status === 'DRAFT' || (invoiceDetail.status === 'PENDING_APPROVAL' && isAdmin)) && (
+                  <button
+                    onClick={() => {
+                      setDetailInvoiceId(null);
+                      openEditDialog(invoiceDetail);
+                    }}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors"
+                  >
+                    Edit
+                  </button>
+                )}
+
                 {invoiceDetail.status === 'DRAFT' && (
+                  <button
+                    onClick={() => submitApprovalMutation.mutate(invoiceDetail.id)}
+                    disabled={submitApprovalMutation.isPending}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-medium transition-colors"
+                  >
+                    {submitApprovalMutation.isPending ? 'Submitting...' : 'Submit for Approval'}
+                  </button>
+                )}
+
+                {(invoiceDetail.status === 'PENDING_APPROVAL' || invoiceDetail.status === 'DRAFT') && isAdmin && (
                   <button
                     onClick={() => postMutation.mutate(invoiceDetail.id)}
                     disabled={postMutation.isPending}
@@ -691,8 +790,8 @@ export const CustomerInvoicesPage: React.FC = () => {
                   <FileText className="w-6 h-6" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">New Customer Invoice</h2>
-                  <p className="text-xs text-gray-500 mt-0.5">Enter direct billing details for customer</p>
+                  <h2 className="text-xl font-bold text-gray-900">{isEditMode ? 'Edit Customer Invoice' : 'New Customer Invoice'}</h2>
+                  <p className="text-xs text-gray-500 mt-0.5">{isEditMode ? 'Edit direct billing details for customer' : 'Enter direct billing details for customer'}</p>
                 </div>
               </div>
               <button

@@ -81,6 +81,16 @@ export const customerInvoiceSchema = z.object({
   lines: z.array(invoiceLineSchema).min(1, 'At least one line item is required'),
 });
 
+// Update Customer Invoice
+export const updateInvoiceSchema = z.object({
+  invoiceDate: z.string().or(z.date()).optional(),
+  dueDate: z.string().or(z.date()).optional(),
+  paymentTerms: z.string().optional().nullable(),
+  journalId: z.coerce.number().int().positive().optional(),
+  reference: z.string().optional().nullable(),
+  lines: z.array(invoiceLineSchema).min(1, 'At least one line item is required').optional(),
+});
+
 // Payment Registration
 export const paymentRegistrationSchema = z.object({
   type: z.enum(['CUSTOMER', 'VENDOR']),

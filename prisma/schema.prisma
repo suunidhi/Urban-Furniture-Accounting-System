@@ -69,6 +69,7 @@ enum OrderStatus {
 
 enum InvoiceStatus {
   DRAFT
+  PENDING_APPROVAL
   POSTED
   PARTIALLY_PAID
   PAID
