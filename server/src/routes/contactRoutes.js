@@ -19,7 +19,7 @@ router.get('/', authenticateToken, async (req, res) => {
 // Create contact
 router.post('/', authenticateToken, async (req, res) => {
   const { name, type, email, mobile, address_line, city, state, pincode } = req.body;
-  
+
   try {
     const result = await prisma.$transaction(async (tx) => {
       // Create contact
@@ -28,12 +28,12 @@ router.post('/', authenticateToken, async (req, res) => {
           name, type, email, mobile, address_line, city, state, pincode
         }
       });
-      
+
       // Auto-create user for contact if email is provided
       if (email) {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash('contact123', salt);
-        
+
         await tx.user.create({
           data: {
             name,
@@ -44,7 +44,7 @@ router.post('/', authenticateToken, async (req, res) => {
           }
         });
       }
-      
+
       return newContact;
     });
 

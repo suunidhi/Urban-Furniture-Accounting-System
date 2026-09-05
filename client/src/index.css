@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @theme {
+<<<<<<< HEAD
   --color-odoo-primary: #714B67;
   --color-odoo-primaryHover: #5B3C53;
   --color-odoo-secondary: #017E84;
@@ -10,11 +11,27 @@
   --color-odoo-border: #DEE2E6;
   --color-odoo-sidebar: #FFFFFF;
   --color-odoo-sidebarHover: #F4F4F4;
+=======
+  --color-primary: #714B67;
+  --color-secondary: #017E84;
+  --color-gray: #8F8F8F;
+  --color-gray-light: #E5E7EB;
+  --color-gray-dark: #374151;
+  --color-background-main: #FFFFFF;
+  --color-background-secondary: #F7F7F7;
+>>>>>>> master
 }
 
 @layer base {
   body {
+<<<<<<< HEAD
     background-color: var(--color-odoo-bg);
     color: var(--color-odoo-text);
   }
 }
+=======
+    background-color: var(--color-background-secondary);
+    @apply text-slate-800 antialiased;
+  }
+}
+>>>>>>> master

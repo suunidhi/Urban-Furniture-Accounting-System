@@ -8,14 +8,14 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  
+
   // view: 'login' | 'forgot' | 'otp' | 'reset'
   const [view, setView] = useState('login');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
-  
+
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const { login } = useContext(AuthContext);
@@ -76,7 +76,7 @@ const Login = () => {
     e.preventDefault();
     setError('');
     setMessage('');
-    
+
     if (newPassword !== confirmNewPassword) {
       return setError('Passwords do not match');
     }
@@ -139,9 +139,9 @@ const Login = () => {
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                   />
-                  <button 
-                    type="button" 
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center" 
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? <EyeSlashIcon /> : <EyeIcon />}
@@ -228,9 +228,9 @@ const Login = () => {
                     value={newPassword}
                     onChange={e => setNewPassword(e.target.value)}
                   />
-                  <button 
-                    type="button" 
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center" 
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
                     onClick={() => setShowNewPassword(!showNewPassword)}
                   >
                     {showNewPassword ? <EyeSlashIcon /> : <EyeIcon />}
@@ -247,9 +247,9 @@ const Login = () => {
                     value={confirmNewPassword}
                     onChange={e => setConfirmNewPassword(e.target.value)}
                   />
-                  <button 
-                    type="button" 
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center" 
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
                     onClick={() => setShowNewPassword(!showNewPassword)}
                   >
                     {showNewPassword ? <EyeSlashIcon /> : <EyeIcon />}

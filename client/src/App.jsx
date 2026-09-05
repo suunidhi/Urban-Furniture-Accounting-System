@@ -32,7 +32,7 @@ const DashboardLayout = () => {
           <div className="text-xl font-semibold text-gray-800">Dashboard</div>
           <div className="flex items-center gap-4">
             <span className="text-sm font-medium">{user?.name}</span>
-            <button 
+            <button
               onClick={logout}
               className="text-sm px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-gray-700"
             >

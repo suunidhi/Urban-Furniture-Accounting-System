@@ -13,7 +13,7 @@ const generateToken = (user) => {
 const signup = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
-    
+
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
       return res.status(400).json({ message: 'User already exists' });
@@ -97,11 +97,11 @@ const me = async (req, res) => {
         created_at: true
       }
     });
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
+
     res.json(user);
   } catch (error) {
     console.error('Fetch me error:', error);
@@ -113,7 +113,7 @@ const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
     const user = await prisma.user.findUnique({ where: { email } });
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User with this email does not exist' });
     }
@@ -139,7 +139,7 @@ const forgotPassword = async (req, res) => {
 const verifyOTP = async (req, res) => {
   try {
     const { email, otp } = req.body;
-    
+
     const user = await prisma.user.findFirst({
       where: {
         email: email,
@@ -164,7 +164,7 @@ const verifyOTP = async (req, res) => {
 const resetPassword = async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
-    
+
     const user = await prisma.user.findFirst({
       where: {
         email: email,
