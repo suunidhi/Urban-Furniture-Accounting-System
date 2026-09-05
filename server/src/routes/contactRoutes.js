@@ -55,4 +55,36 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
+// Update contact
+router.put('/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { name, type, email, mobile, address_line, city, state, pincode, status } = req.body;
+  
+  try {
+    const updatedContact = await prisma.contact.update({
+      where: { id: parseInt(id) },
+      data: { name, type, email, mobile, address_line, city, state, pincode, status }
+    });
+    res.json(updatedContact);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error updating contact' });
+  }
+});
+
+// Delete (archive) contact
+router.delete('/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await prisma.contact.update({
+      where: { id: parseInt(id) },
+      data: { status: 'archived' }
+    });
+    res.json({ message: 'Contact archived successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error archiving contact' });
+  }
+});
+
 module.exports = router;

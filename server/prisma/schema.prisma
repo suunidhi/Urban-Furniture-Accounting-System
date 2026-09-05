@@ -161,6 +161,7 @@ model Product {
   type        ProductType   @default(goods)
   sales_price Decimal       @default(0.00) @db.Decimal(15,2)
   cost_price  Decimal       @default(0.00) @db.Decimal(15,2)
+  stock       Decimal       @default(0.00) @db.Decimal(15,2)
   category_id Int?
   category    ProductCategory? @relation(fields: [category_id], references: [id])
   status      Status        @default(active)
@@ -218,6 +219,10 @@ model AnalyticAccount {
 
   journal_items JournalItem[]
   budgets       Budget[]
+  po_lines      PurchaseOrderLine[]
+  bill_lines    VendorBillLine[]
+  so_lines      SalesOrderLine[]
+  inv_lines     CustomerInvoiceLine[]
   
   @@map("analytic_accounts")
 }
@@ -288,6 +293,8 @@ model PurchaseOrderLine {
   po          PurchaseOrder @relation(fields: [po_id], references: [id], onDelete: Cascade)
   product_id  Int?
   product     Product?      @relation(fields: [product_id], references: [id])
+  analytic_account_id Int?
+  analytic_account    AnalyticAccount? @relation(fields: [analytic_account_id], references: [id])
   description String?
   quantity    Decimal       @default(1) @db.Decimal(15,2)
   unit_price  Decimal       @default(0.00) @db.Decimal(15,2)
@@ -328,6 +335,8 @@ model VendorBillLine {
   bill        VendorBill  @relation(fields: [bill_id], references: [id], onDelete: Cascade)
   product_id  Int?
   product     Product?    @relation(fields: [product_id], references: [id])
+  analytic_account_id Int?
+  analytic_account    AnalyticAccount? @relation(fields: [analytic_account_id], references: [id])
   description String?
   quantity    Decimal     @default(1) @db.Decimal(15,2)
   unit_price  Decimal     @default(0.00) @db.Decimal(15,2)
@@ -364,6 +373,8 @@ model SalesOrderLine {
   so          SalesOrder  @relation(fields: [so_id], references: [id], onDelete: Cascade)
   product_id  Int?
   product     Product?    @relation(fields: [product_id], references: [id])
+  analytic_account_id Int?
+  analytic_account    AnalyticAccount? @relation(fields: [analytic_account_id], references: [id])
   description String?
   quantity    Decimal     @default(1) @db.Decimal(15,2)
   unit_price  Decimal     @default(0.00) @db.Decimal(15,2)
@@ -409,6 +420,8 @@ model CustomerInvoiceLine {
   invoice     CustomerInvoice @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
   product_id  Int?
   product     Product?        @relation(fields: [product_id], references: [id])
+  analytic_account_id Int?
+  analytic_account    AnalyticAccount? @relation(fields: [analytic_account_id], references: [id])
   description String?
   quantity    Decimal         @default(1) @db.Decimal(15,2)
   unit_price  Decimal         @default(0.00) @db.Decimal(15,2)
