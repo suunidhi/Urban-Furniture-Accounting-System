@@ -67,6 +67,7 @@ export const DashboardPage: React.FC = () => {
     bucket31_60: 0,
     bucket61_90: 0,
     bucket90Plus: 0,
+    
   };
 
   // Chart data

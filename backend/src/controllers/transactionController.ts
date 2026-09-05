@@ -3,11 +3,11 @@ import { PurchaseService } from '../services/purchaseService';
 import { SalesService } from '../services/salesService';
 import { PaymentService } from '../services/paymentService';
 import {
-  purchaseOrderSchema,
-  vendorBillSchema,
-  salesOrderSchema,
-  customerInvoiceSchema,
-  paymentRegistrationSchema,
+  validatePurchaseOrder,
+  validateVendorBill,
+  validateSalesOrder,
+  validateCustomerInvoice,
+  validatePaymentRegistration,
 } from '../validators/transactions';
 import { successResponse } from '../utils/response';
 import { AuthRequest } from '../middleware/auth';
@@ -36,7 +36,7 @@ export class TransactionController {
 
   static async createPO(req: Request, res: Response, next: NextFunction) {
     try {
-      const validated = purchaseOrderSchema.parse(req.body);
+      const validated = validatePurchaseOrder(req.body);
       const po = await PurchaseService.createPO(validated as any);
       return successResponse(res, po, 'Purchase order created successfully', 201);
     } catch (error) {
@@ -103,7 +103,7 @@ export class TransactionController {
 
   static async createBill(req: Request, res: Response, next: NextFunction) {
     try {
-      const validated = vendorBillSchema.parse(req.body);
+      const validated = validateVendorBill(req.body);
       const bill = await PurchaseService.createBill(validated as any);
       return successResponse(res, bill, 'Vendor bill created successfully', 201);
     } catch (error) {
@@ -144,7 +144,7 @@ export class TransactionController {
 
   static async createSO(req: Request, res: Response, next: NextFunction) {
     try {
-      const validated = salesOrderSchema.parse(req.body);
+      const validated = validateSalesOrder(req.body);
       const so = await SalesService.createSO(validated as any);
       return successResponse(res, so, 'Sales order created successfully', 201);
     } catch (error) {
@@ -211,7 +211,7 @@ export class TransactionController {
 
   static async createInvoice(req: Request, res: Response, next: NextFunction) {
     try {
-      const validated = customerInvoiceSchema.parse(req.body);
+      const validated = validateCustomerInvoice(req.body);
       const invoice = await SalesService.createInvoice(validated as any);
       return successResponse(res, invoice, 'Customer invoice created successfully', 201);
     } catch (error) {
@@ -267,7 +267,7 @@ export class TransactionController {
 
   static async registerPayment(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const validated = paymentRegistrationSchema.parse(req.body);
+      const validated = validatePaymentRegistration(req.body);
 
       // Contact user security check: contact can only pay for themselves
       if (req.user?.role === 'CONTACT_USER') {

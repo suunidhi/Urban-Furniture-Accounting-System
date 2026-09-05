@@ -1,24 +1,63 @@
 import { Request, Response, NextFunction } from 'express';
 import { BudgetService } from '../services/budgetService';
 import { successResponse } from '../utils/response';
-import { z } from 'zod';
+import { AppValidationError } from '../validators/auth';
 
-const createBudgetSchema = z.object({
-  name: z.string().min(2),
-  startDate: z.string(),
-  endDate: z.string(),
-  responsibleId: z.number().int().positive().nullable().optional(),
-  analyticAccountId: z.number().int().positive(),
-  committedAmount: z.number().positive(),
-  notes: z.string().optional(),
-});
+const validateCreateBudget = (data: any) => {
+  const errors: { field?: string; message: string }[] = [];
 
-const reviseBudgetSchema = z.object({
-  committedAmount: z.number().positive(),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
-  notes: z.string().optional(),
-});
+  if (!data.name || typeof data.name !== 'string' || data.name.length < 2) {
+    errors.push({ field: 'name', message: 'Name must be at least 2 characters' });
+  }
+
+  if (!data.startDate || typeof data.startDate !== 'string') {
+    errors.push({ field: 'startDate', message: 'Start date is required' });
+  }
+
+  if (!data.endDate || typeof data.endDate !== 'string') {
+    errors.push({ field: 'endDate', message: 'End date is required' });
+  }
+
+  const analyticAccountId = Number(data.analyticAccountId);
+  if (isNaN(analyticAccountId) || analyticAccountId <= 0 || !Number.isInteger(analyticAccountId)) {
+    errors.push({ field: 'analyticAccountId', message: 'Analytic Account ID is required' });
+  } else {
+    data.analyticAccountId = analyticAccountId;
+  }
+
+  if (data.responsibleId !== undefined && data.responsibleId !== null) {
+    const responsibleId = Number(data.responsibleId);
+    if (isNaN(responsibleId) || responsibleId <= 0 || !Number.isInteger(responsibleId)) {
+      errors.push({ field: 'responsibleId', message: 'Responsible ID must be a positive integer' });
+    } else {
+      data.responsibleId = responsibleId;
+    }
+  }
+
+  const committedAmount = Number(data.committedAmount);
+  if (isNaN(committedAmount) || committedAmount <= 0) {
+    errors.push({ field: 'committedAmount', message: 'Committed amount must be a positive number' });
+  } else {
+    data.committedAmount = committedAmount;
+  }
+
+  if (errors.length > 0) throw new AppValidationError(errors);
+  return data;
+};
+
+const validateReviseBudget = (data: any) => {
+  const errors: { field?: string; message: string }[] = [];
+
+  const committedAmount = Number(data.committedAmount);
+  if (isNaN(committedAmount) || committedAmount <= 0) {
+    errors.push({ field: 'committedAmount', message: 'Committed amount must be a positive number' });
+  } else {
+    data.committedAmount = committedAmount;
+  }
+
+  if (errors.length > 0) throw new AppValidationError(errors);
+  return data;
+};
 
 export class BudgetController {
   static async listBudgets(req: Request, res: Response, next: NextFunction) {
@@ -43,7 +82,7 @@ export class BudgetController {
 
   static async createBudget(req: Request, res: Response, next: NextFunction) {
     try {
-      const validated = createBudgetSchema.parse(req.body);
+      const validated = validateCreateBudget(req.body);
       const budget = await BudgetService.createBudget(validated);
       return successResponse(res, budget, 'Budget created successfully', 201);
     } catch (error) {
@@ -64,7 +103,7 @@ export class BudgetController {
   static async reviseBudget(req: Request, res: Response, next: NextFunction) {
     try {
       const id = parseInt(req.params.id, 10);
-      const validated = reviseBudgetSchema.parse(req.body);
+      const validated = validateReviseBudget(req.body);
       const revision = await BudgetService.reviseBudget(id, validated);
       return successResponse(res, revision, 'Budget revised successfully', 201);
     } catch (error) {

@@ -1,97 +1,232 @@
-import { z } from 'zod';
+import { AppValidationError } from './auth';
 
-// Purchase Order Line
-export const poLineSchema = z.object({
-  productId: z.coerce.number().int().positive('Product is required'),
-  analyticAccountId: z.coerce.number().int().positive().optional().nullable(),
-  quantity: z.coerce.number().positive('Quantity must be greater than 0'),
-  unitPrice: z.coerce.number().min(0, 'Unit price must be non-negative'),
-});
+export const validatePurchaseOrder = (data: any) => {
+  const errors: { field?: string; message: string }[] = [];
 
-// Purchase Order
-export const purchaseOrderSchema = z.object({
-  vendorId: z.coerce.number().int().positive('Vendor is required'),
-  poDate: z.string().or(z.date()).optional(),
-  paymentTerms: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
-  lines: z.array(poLineSchema).min(1, 'At least one line item is required'),
-});
+  const vendorId = Number(data.vendorId);
+  if (isNaN(vendorId) || vendorId <= 0 || !Number.isInteger(vendorId)) {
+    errors.push({ field: 'vendorId', message: 'Vendor is required' });
+  } else {
+    data.vendorId = vendorId;
+  }
 
-// Vendor Bill Line
-export const billLineSchema = z.object({
-  productId: z.coerce.number().int().positive('Product is required'),
-  description: z.string().optional().nullable(),
-  accountId: z.coerce.number().int().positive('Chart of Account is required'),
-  analyticAccountId: z.coerce.number().int().positive().optional().nullable(),
-  quantity: z.coerce.number().positive('Quantity must be greater than 0'),
-  unitPrice: z.coerce.number().min(0, 'Unit price must be non-negative'),
-  taxRate: z.coerce.number().min(0).default(0),
-});
+  if (!data.lines || !Array.isArray(data.lines) || data.lines.length === 0) {
+    errors.push({ field: 'lines', message: 'At least one line item is required' });
+  } else {
+    data.lines.forEach((line: any, index: number) => {
+      const productId = Number(line.productId);
+      if (isNaN(productId) || productId <= 0 || !Number.isInteger(productId)) {
+        errors.push({ field: `lines[${index}].productId`, message: 'Product is required' });
+      } else {
+        line.productId = productId;
+      }
 
-// Vendor Bill
-export const vendorBillSchema = z.object({
-  vendorId: z.coerce.number().int().positive('Vendor is required'),
-  billDate: z.string().or(z.date()).optional(),
-  accountingDate: z.string().or(z.date()).optional(),
-  dueDate: z.string().or(z.date()),
-  paymentTerms: z.string().optional().nullable(),
-  journalId: z.coerce.number().int().positive('Journal is required'),
-  reference: z.string().optional().nullable(),
-  purchaseOrderId: z.coerce.number().int().positive().optional().nullable(),
-  lines: z.array(billLineSchema).min(1, 'At least one line item is required'),
-});
+      const quantity = Number(line.quantity);
+      if (isNaN(quantity) || quantity <= 0) {
+        errors.push({ field: `lines[${index}].quantity`, message: 'Quantity must be greater than 0' });
+      } else {
+        line.quantity = quantity;
+      }
 
-// Sales Order Line
-export const soLineSchema = z.object({
-  productId: z.coerce.number().int().positive('Product is required'),
-  analyticAccountId: z.coerce.number().int().positive().optional().nullable(),
-  quantity: z.coerce.number().positive('Quantity must be greater than 0'),
-  unitPrice: z.coerce.number().min(0, 'Unit price must be non-negative'),
-  taxRate: z.coerce.number().min(0).default(0),
-});
+      const unitPrice = Number(line.unitPrice);
+      if (isNaN(unitPrice) || unitPrice < 0) {
+        errors.push({ field: `lines[${index}].unitPrice`, message: 'Unit price must be non-negative' });
+      } else {
+        line.unitPrice = unitPrice;
+      }
+    });
+  }
 
-// Sales Order
-export const salesOrderSchema = z.object({
-  customerId: z.coerce.number().int().positive('Customer is required'),
-  soDate: z.string().or(z.date()).optional(),
-  notes: z.string().optional().nullable(),
-  lines: z.array(soLineSchema).min(1, 'At least one line item is required'),
-});
+  if (errors.length > 0) throw new AppValidationError(errors);
+  return data;
+};
 
-// Customer Invoice Line
-export const invoiceLineSchema = z.object({
-  productId: z.coerce.number().int().positive('Product is required'),
-  description: z.string().optional().nullable(),
-  accountId: z.coerce.number().int().positive('Chart of Account is required'),
-  analyticAccountId: z.coerce.number().int().positive().optional().nullable(),
-  quantity: z.coerce.number().positive('Quantity must be greater than 0'),
-  unitPrice: z.coerce.number().min(0, 'Unit price must be non-negative'),
-  taxRate: z.coerce.number().min(0).default(0),
-});
+export const validateVendorBill = (data: any) => {
+  const errors: { field?: string; message: string }[] = [];
 
-// Customer Invoice
-export const customerInvoiceSchema = z.object({
-  customerId: z.coerce.number().int().positive('Customer is required'),
-  invoiceDate: z.string().or(z.date()).optional(),
-  dueDate: z.string().or(z.date()),
-  paymentTerms: z.string().optional().nullable(),
-  journalId: z.coerce.number().int().positive('Journal is required'),
-  reference: z.string().optional().nullable(),
-  salesOrderId: z.coerce.number().int().positive().optional().nullable(),
-  lines: z.array(invoiceLineSchema).min(1, 'At least one line item is required'),
-});
+  const vendorId = Number(data.vendorId);
+  if (isNaN(vendorId) || vendorId <= 0 || !Number.isInteger(vendorId)) {
+    errors.push({ field: 'vendorId', message: 'Vendor is required' });
+  } else {
+    data.vendorId = vendorId;
+  }
 
-// Payment Registration
-export const paymentRegistrationSchema = z.object({
-  type: z.enum(['CUSTOMER', 'VENDOR']),
-  partnerId: z.coerce.number().int().positive('Partner is required'),
-  amount: z.coerce.number().positive('Payment amount must be greater than zero'),
-  paymentMethod: z.enum(['CASH', 'BANK']),
-  paymentDate: z.string().or(z.date()).optional(),
-  reference: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
-  invoiceId: z.coerce.number().int().positive().optional().nullable(),
-  customerInvoiceId: z.coerce.number().int().positive().optional().nullable(),
-  billId: z.coerce.number().int().positive().optional().nullable(),
-  vendorBillId: z.coerce.number().int().positive().optional().nullable(),
-});
+  if (!data.dueDate) {
+    errors.push({ field: 'dueDate', message: 'Due date is required' });
+  }
+
+  const journalId = Number(data.journalId);
+  if (isNaN(journalId) || journalId <= 0 || !Number.isInteger(journalId)) {
+    errors.push({ field: 'journalId', message: 'Journal is required' });
+  } else {
+    data.journalId = journalId;
+  }
+
+  if (!data.lines || !Array.isArray(data.lines) || data.lines.length === 0) {
+    errors.push({ field: 'lines', message: 'At least one line item is required' });
+  } else {
+    data.lines.forEach((line: any, index: number) => {
+      const productId = Number(line.productId);
+      if (isNaN(productId) || productId <= 0 || !Number.isInteger(productId)) {
+        errors.push({ field: `lines[${index}].productId`, message: 'Product is required' });
+      } else {
+        line.productId = productId;
+      }
+
+      const accountId = Number(line.accountId);
+      if (isNaN(accountId) || accountId <= 0 || !Number.isInteger(accountId)) {
+        errors.push({ field: `lines[${index}].accountId`, message: 'Chart of Account is required' });
+      } else {
+        line.accountId = accountId;
+      }
+
+      const quantity = Number(line.quantity);
+      if (isNaN(quantity) || quantity <= 0) {
+        errors.push({ field: `lines[${index}].quantity`, message: 'Quantity must be greater than 0' });
+      } else {
+        line.quantity = quantity;
+      }
+
+      const unitPrice = Number(line.unitPrice);
+      if (isNaN(unitPrice) || unitPrice < 0) {
+        errors.push({ field: `lines[${index}].unitPrice`, message: 'Unit price must be non-negative' });
+      } else {
+        line.unitPrice = unitPrice;
+      }
+    });
+  }
+
+  if (errors.length > 0) throw new AppValidationError(errors);
+  return data;
+};
+
+export const validateSalesOrder = (data: any) => {
+  const errors: { field?: string; message: string }[] = [];
+
+  const customerId = Number(data.customerId);
+  if (isNaN(customerId) || customerId <= 0 || !Number.isInteger(customerId)) {
+    errors.push({ field: 'customerId', message: 'Customer is required' });
+  } else {
+    data.customerId = customerId;
+  }
+
+  if (!data.lines || !Array.isArray(data.lines) || data.lines.length === 0) {
+    errors.push({ field: 'lines', message: 'At least one line item is required' });
+  } else {
+    data.lines.forEach((line: any, index: number) => {
+      const productId = Number(line.productId);
+      if (isNaN(productId) || productId <= 0 || !Number.isInteger(productId)) {
+        errors.push({ field: `lines[${index}].productId`, message: 'Product is required' });
+      } else {
+        line.productId = productId;
+      }
+
+      const quantity = Number(line.quantity);
+      if (isNaN(quantity) || quantity <= 0) {
+        errors.push({ field: `lines[${index}].quantity`, message: 'Quantity must be greater than 0' });
+      } else {
+        line.quantity = quantity;
+      }
+
+      const unitPrice = Number(line.unitPrice);
+      if (isNaN(unitPrice) || unitPrice < 0) {
+        errors.push({ field: `lines[${index}].unitPrice`, message: 'Unit price must be non-negative' });
+      } else {
+        line.unitPrice = unitPrice;
+      }
+    });
+  }
+
+  if (errors.length > 0) throw new AppValidationError(errors);
+  return data;
+};
+
+export const validateCustomerInvoice = (data: any) => {
+  const errors: { field?: string; message: string }[] = [];
+
+  const customerId = Number(data.customerId);
+  if (isNaN(customerId) || customerId <= 0 || !Number.isInteger(customerId)) {
+    errors.push({ field: 'customerId', message: 'Customer is required' });
+  } else {
+    data.customerId = customerId;
+  }
+
+  if (!data.dueDate) {
+    errors.push({ field: 'dueDate', message: 'Due date is required' });
+  }
+
+  const journalId = Number(data.journalId);
+  if (isNaN(journalId) || journalId <= 0 || !Number.isInteger(journalId)) {
+    errors.push({ field: 'journalId', message: 'Journal is required' });
+  } else {
+    data.journalId = journalId;
+  }
+
+  if (!data.lines || !Array.isArray(data.lines) || data.lines.length === 0) {
+    errors.push({ field: 'lines', message: 'At least one line item is required' });
+  } else {
+    data.lines.forEach((line: any, index: number) => {
+      const productId = Number(line.productId);
+      if (isNaN(productId) || productId <= 0 || !Number.isInteger(productId)) {
+        errors.push({ field: `lines[${index}].productId`, message: 'Product is required' });
+      } else {
+        line.productId = productId;
+      }
+
+      const accountId = Number(line.accountId);
+      if (isNaN(accountId) || accountId <= 0 || !Number.isInteger(accountId)) {
+        errors.push({ field: `lines[${index}].accountId`, message: 'Chart of Account is required' });
+      } else {
+        line.accountId = accountId;
+      }
+
+      const quantity = Number(line.quantity);
+      if (isNaN(quantity) || quantity <= 0) {
+        errors.push({ field: `lines[${index}].quantity`, message: 'Quantity must be greater than 0' });
+      } else {
+        line.quantity = quantity;
+      }
+
+      const unitPrice = Number(line.unitPrice);
+      if (isNaN(unitPrice) || unitPrice < 0) {
+        errors.push({ field: `lines[${index}].unitPrice`, message: 'Unit price must be non-negative' });
+      } else {
+        line.unitPrice = unitPrice;
+      }
+    });
+  }
+
+  if (errors.length > 0) throw new AppValidationError(errors);
+  return data;
+};
+
+export const validatePaymentRegistration = (data: any) => {
+  const errors: { field?: string; message: string }[] = [];
+
+  const validTypes = ['CUSTOMER', 'VENDOR'];
+  if (!data.type || !validTypes.includes(data.type)) {
+    errors.push({ field: 'type', message: 'Invalid payment type' });
+  }
+
+  const partnerId = Number(data.partnerId);
+  if (isNaN(partnerId) || partnerId <= 0 || !Number.isInteger(partnerId)) {
+    errors.push({ field: 'partnerId', message: 'Partner is required' });
+  } else {
+    data.partnerId = partnerId;
+  }
+
+  const amount = Number(data.amount);
+  if (isNaN(amount) || amount <= 0) {
+    errors.push({ field: 'amount', message: 'Payment amount must be greater than zero' });
+  } else {
+    data.amount = amount;
+  }
+
+  const validMethods = ['CASH', 'BANK'];
+  if (!data.paymentMethod || !validMethods.includes(data.paymentMethod)) {
+    errors.push({ field: 'paymentMethod', message: 'Invalid payment method' });
+  }
+
+  if (errors.length > 0) throw new AppValidationError(errors);
+  return data;
+};
