@@ -108,4 +108,76 @@ router.get('/profit-loss', authenticateToken, async (req, res) => {
   }
 });
 
+// Get Product Financials (Revenue & Cost)
+router.get('/product-financials', authenticateToken, async (req, res) => {
+  try {
+    const { period } = req.query; // '7days' or '1month' or undefined (all time)
+    
+    let dateFilter = {};
+    if (period === '7days') {
+      const date = new Date();
+      date.setDate(date.getDate() - 7);
+      dateFilter = { gte: date };
+    } else if (period === '14days') {
+      const date = new Date();
+      date.setDate(date.getDate() - 14);
+      dateFilter = { gte: date };
+    } else if (period === '1month') {
+      const date = new Date();
+      date.setMonth(date.getMonth() - 1);
+      dateFilter = { gte: date };
+    }
+
+    const products = await prisma.product.findMany();
+    
+    // Revenue from Customer Invoices
+    const invoiceLines = await prisma.customerInvoiceLine.findMany({
+      where: {
+        invoice: {
+          status: { in: ['posted', 'paid', 'partly_paid'] },
+          ...(Object.keys(dateFilter).length > 0 && { invoice_date: dateFilter })
+        },
+        product_id: { not: null }
+      },
+      include: { product: true }
+    });
+
+    // Cost from Vendor Bills
+    const billLines = await prisma.vendorBillLine.findMany({
+      where: {
+        bill: {
+          status: { in: ['posted', 'paid', 'partly_paid'] },
+          ...(Object.keys(dateFilter).length > 0 && { invoice_date: dateFilter })
+        },
+        product_id: { not: null }
+      },
+      include: { product: true }
+    });
+
+    const report = {};
+    products.forEach(p => {
+      report[p.id] = { name: p.name, revenue: 0, cost: 0 };
+    });
+
+    invoiceLines.forEach(line => {
+      if (report[line.product_id]) {
+        report[line.product_id].revenue += Number(line.subtotal);
+      }
+    });
+
+    billLines.forEach(line => {
+      if (report[line.product_id]) {
+        report[line.product_id].cost += Number(line.subtotal);
+      }
+    });
+
+    const reportArray = Object.values(report).filter(p => p.revenue > 0 || p.cost > 0);
+    res.json(reportArray);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error generating Product Financials' });
+  }
+});
+
 module.exports = router;

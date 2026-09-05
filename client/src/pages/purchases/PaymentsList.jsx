@@ -8,7 +8,9 @@ const PaymentsList = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'graph'
-  const [graphType, setGraphType] = useState('cashflow_line'); // 'cashflow_line', 'cashflow_bar', 'customer_pie', 'vendor_pie'
+  const [graphType, setGraphType] = useState('cashflow_line'); // 'cashflow_line', 'cashflow_bar', 'customer_pie', 'vendor_pie', 'product_revenue', 'product_cost_7d', 'product_cost_14d', 'product_cost_1m', 'product_cost_all'
+  const [productData, setProductData] = useState([]);
+  const [isProductLoading, setIsProductLoading] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -24,9 +26,34 @@ const PaymentsList = () => {
     }
   };
 
+  const fetchProductData = async (period) => {
+    try {
+      setIsProductLoading(true);
+      const url = period ? `/reports/product-financials?period=${period}` : '/reports/product-financials';
+      const res = await api.get(url);
+      setProductData(res.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsProductLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (graphType === 'product_revenue' || graphType === 'product_cost_all') {
+      fetchProductData();
+    } else if (graphType === 'product_cost_7d') {
+      fetchProductData('7days');
+    } else if (graphType === 'product_cost_14d') {
+      fetchProductData('14days');
+    } else if (graphType === 'product_cost_1m') {
+      fetchProductData('1month');
+    }
+  }, [graphType]);
 
   const columns = [
     { header: 'Payment No', accessor: 'payment_number' },
@@ -170,6 +197,50 @@ const PaymentsList = () => {
           </PieChart>
         </ResponsiveContainer>
       );
+    } else if (graphType.startsWith('product_')) {
+      if (isProductLoading) return <div className="h-full flex items-center justify-center text-gray-500">Loading product data...</div>;
+      
+      const isRevenue = graphType === 'product_revenue';
+      const dataKey = isRevenue ? 'revenue' : 'cost';
+      
+      const sortedData = [...productData].sort((a, b) => b[dataKey] - a[dataKey]).filter(d => d[dataKey] > 0);
+
+      if (sortedData.length === 0) return <div className="h-full flex items-center justify-center text-gray-400">No {isRevenue ? 'revenue' : 'purchases'} recorded for this period</div>;
+
+      const totalValue = sortedData.reduce((sum, item) => sum + item[dataKey], 0);
+
+      return (
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={sortedData}
+              cx="50%"
+              cy="50%"
+              labelLine={true}
+              label={({ name, percent, value }) => `${name}: $${value.toFixed(2)} (${(percent * 100).toFixed(1)}%)`}
+              outerRadius={150}
+              innerRadius={60}
+              fill="#8884d8"
+              dataKey={dataKey}
+            >
+              {sortedData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip 
+              formatter={(value) => [`$${value.toFixed(2)}`, isRevenue ? 'Revenue' : 'Stock Bought (Cost)']}
+              contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}
+            />
+            <Legend />
+            <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="text-sm font-semibold text-gray-500">
+              Total
+            </text>
+            <text x="50%" y="55%" textAnchor="middle" dominantBaseline="middle" className="text-lg font-bold text-gray-800">
+              ${totalValue.toFixed(2)}
+            </text>
+          </PieChart>
+        </ResponsiveContainer>
+      );
     }
   };
 
@@ -222,6 +293,12 @@ const PaymentsList = () => {
                 <option value="cashflow_bar">Cash Flow Over Time (Bar)</option>
                 <option value="customer_pie">Income by Customer (Pie)</option>
                 <option value="vendor_pie">Expenses by Vendor (Pie)</option>
+                <option disabled>──────────</option>
+                <option value="product_revenue">Revenue by Product</option>
+                <option value="product_cost_7d">Stock Bought (Last 7 Days)</option>
+                <option value="product_cost_14d">Stock Bought (Last 14 Days)</option>
+                <option value="product_cost_1m">Stock Bought (Last 1 Month)</option>
+                <option value="product_cost_all">Stock Bought (All Time)</option>
               </select>
             </div>
             <div className="flex-1 w-full">
