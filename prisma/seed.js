@@ -1271,32 +1271,31 @@ async function main() {
   // ==========================================
   console.log('Seeding Vendors...');
   const vendorsData = [
-    {
-      name: 'Azure Furniture',
-      type: 'VENDOR',
-      email: 'vendor@azurefurniture.com',
-      mobile: '+91 9876543210',
-      street: '42 Industrial Area, Phase 2',
-      city: 'Mumbai',
-      state: 'Maharashtra',
-      country: 'India',
-      pincode: '400013',
-      imageUrl: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=500&auto=format&fit=crop&q=80',
-      status: 'ACTIVE',
-    },
-    {
-      name: 'Rahul Sharma',
-      type: 'VENDOR',
-      email: 'rahul.sharma@example.com',
-      mobile: '+91 9090090909',
-      street: '15 Civil Lines',
-      city: 'Delhi',
-      state: 'Delhi',
-      country: 'India',
-      pincode: '110054',
-      imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80',
-      status: 'ACTIVE',
-    },
+    { name: 'Azure Furniture', type: 'VENDOR', email: 'vendor@azurefurniture.com', mobile: '+91 9876543210', street: '42 Industrial Area, Phase 2', city: 'Mumbai', state: 'Maharashtra', country: 'India', pincode: '400013', imageUrl: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
+    { name: 'Rahul Sharma', type: 'VENDOR', email: 'rahul.sharma@example.com', mobile: '+91 9090090909', street: '15 Civil Lines', city: 'Delhi', state: 'Delhi', country: 'India', pincode: '110054', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
+    { name: 'Supplier 3 Inc', type: 'VENDOR', email: 'supplier3@example.com', mobile: '+91 9000000003', street: 'Street 3', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411003', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
+    { name: 'Supplier 4 Inc', type: 'VENDOR', email: 'supplier4@example.com', mobile: '+91 9000000004', street: 'Street 4', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411004', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
+    { name: 'Supplier 5 Inc', type: 'VENDOR', email: 'supplier5@example.com', mobile: '+91 9000000005', street: 'Street 5', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411005', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
+    { name: 'Supplier 6 Inc', type: 'VENDOR', email: 'supplier6@example.com', mobile: '+91 9000000006', street: 'Street 6', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411006', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
+    { name: 'Supplier 7 Inc', type: 'VENDOR', email: 'supplier7@example.com', mobile: '+91 9000000007', street: 'Street 7', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411007', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
+    { name: 'Supplier 8 Inc', type: 'VENDOR', email: 'supplier8@example.com', mobile: '+91 9000000008', street: 'Street 8', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411008', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
+    { name: 'Supplier 9 Inc', type: 'VENDOR', email: 'supplier9@example.com', mobile: '+91 9000000009', street: 'Street 9', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411009', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
+    { name: 'Supplier 10 Inc', type: 'VENDOR', email: 'supplier10@example.com', mobile: '+91 9000000010', street: 'Street 10', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411000', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
+    { name: 'Supplier 11 Inc', type: 'VENDOR', email: 'supplier11@example.com', mobile: '+91 9000000011', street: 'Street 11', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411001', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
+    { name: 'Supplier 12 Inc', type: 'VENDOR', email: 'supplier12@example.com', mobile: '+91 9000000012', street: 'Street 12', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411002', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
+    { name: 'Supplier 13 Inc', type: 'VENDOR', email: 'supplier13@example.com', mobile: '+91 9000000013', street: 'Street 13', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411003', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
+    { name: 'Supplier 14 Inc', type: 'VENDOR', email: 'supplier14@example.com', mobile: '+91 9000000014', street: 'Street 14', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411004', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
+    { name: 'Supplier 15 Inc', type: 'VENDOR', email: 'supplier15@example.com', mobile: '+91 9000000015', street: 'Street 15', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411005', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
+    { name: 'Supplier 16 Inc', type: 'VENDOR', email: 'supplier16@example.com', mobile: '+91 9000000016', street: 'Street 16', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411006', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
+    { name: 'Supplier 17 Inc', type: 'VENDOR', email: 'supplier17@example.com', mobile: '+91 9000000017', street: 'Street 17', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411007', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
+    { name: 'Supplier 18 Inc', type: 'VENDOR', email: 'supplier18@example.com', mobile: '+91 9000000018', street: 'Street 18', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411008', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
+    { name: 'Supplier 19 Inc', type: 'VENDOR', email: 'supplier19@example.com', mobile: '+91 9000000019', street: 'Street 19', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411009', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
+    { name: 'Supplier 20 Inc', type: 'VENDOR', email: 'supplier20@example.com', mobile: '+91 9000000020', street: 'Street 20', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411000', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
+    { name: 'Supplier 21 Inc', type: 'VENDOR', email: 'supplier21@example.com', mobile: '+91 9000000021', street: 'Street 21', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411001', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
+    { name: 'Supplier 22 Inc', type: 'VENDOR', email: 'supplier22@example.com', mobile: '+91 9000000022', street: 'Street 22', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411002', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
+    { name: 'Supplier 23 Inc', type: 'VENDOR', email: 'supplier23@example.com', mobile: '+91 9000000023', street: 'Street 23', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411003', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
+    { name: 'Supplier 24 Inc', type: 'VENDOR', email: 'supplier24@example.com', mobile: '+91 9000000024', street: 'Street 24', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411004', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
+    { name: 'Supplier 25 Inc', type: 'VENDOR', email: 'supplier25@example.com', mobile: '+91 9000000025', street: 'Street 25', city: 'Pune', state: 'Maharashtra', country: 'India', pincode: '411005', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80', status: 'ACTIVE' },
   ];
 
   const contacts = {};
@@ -2748,6 +2747,120 @@ async function main() {
     });
   }
 
+  
+  // ==========================================
+  // 9. Transactions (Invoices & Bills)
+  // ==========================================
+  console.log('Seeding 50 Transactions (25 Sales Invoices, 25 Vendor Bills)...');
+  const allProducts = await prisma.product.findMany();
+  const allContacts = await prisma.contact.findMany();
+  const allCustomers = allContacts.filter(c => c.type === 'CUSTOMER');
+  const allVendors = allContacts.filter(c => c.type === 'VENDOR');
+  const salesJournal = await prisma.journal.findUnique({ where: { code: 'INV' } });
+  const purchaseJournal = await prisma.journal.findUnique({ where: { code: 'BILL' } });
+  const salesIncomeAcc = await prisma.account.findUnique({ where: { code: '4000' } });
+  const accountsRec = await prisma.account.findUnique({ where: { code: '1100' } });
+  const purchaseExp = await prisma.account.findUnique({ where: { code: '5000' } });
+  const accountsPay = await prisma.account.findUnique({ where: { code: '2000' } });
+  
+  const opsAnalytic = analytics['Furniture Operations'];
+  const corpAnalytic = analytics['Corporate Commercial Sales'];
+
+  // 25 Vendor Bills
+  for (let i = 1; i <= 25; i++) {
+    const vendor = allVendors[i % allVendors.length];
+    const prod = allProducts[i % allProducts.length];
+    
+    const total = Number(prod.costPrice) * 2;
+    const bill = await prisma.vendorBill.create({
+      data: {
+        billNumber: `BILL-26-${String(i).padStart(4, '0')}`,
+        vendorId: vendor.id,
+        billDate: new Date('2026-01-10T00:00:00Z'),
+        dueDate: new Date('2026-02-10T00:00:00Z'),
+        totalAmount: total,
+        amountDue: total,
+        paidAmount: 0,
+        status: 'POSTED',
+        journalId: purchaseJournal.id,
+      }
+    });
+    
+    await prisma.journalEntry.create({
+      data: {
+        entryNumber: `JE-BILL-${i}`,
+        date: new Date('2026-01-10T00:00:00Z'),
+        journalId: purchaseJournal.id,
+        status: 'POSTED',
+        vendorBillId: bill.id,
+        items: {
+          create: [
+            {
+              accountId: purchaseExp.id,
+              analyticAccountId: opsAnalytic.id,
+              partnerId: vendor.id,
+              debit: total,
+              credit: 0
+            },
+            {
+              accountId: accountsPay.id,
+              partnerId: vendor.id,
+              debit: 0,
+              credit: total
+            }
+          ]
+        }
+      }
+    });
+  }
+
+  // 25 Sales Invoices
+  for (let i = 1; i <= 25; i++) {
+    const customer = allCustomers[i % allCustomers.length];
+    const prod = allProducts[(i+5) % allProducts.length];
+    
+    const total = Number(prod.salesPrice) * 1;
+    const inv = await prisma.customerInvoice.create({
+      data: {
+        invoiceNumber: `INV-26-${String(i).padStart(4, '0')}`,
+        customerId: customer.id,
+        invoiceDate: new Date('2026-01-15T00:00:00Z'),
+        dueDate: new Date('2026-02-15T00:00:00Z'),
+        totalAmount: total,
+        amountDue: total,
+        paidAmount: 0,
+        status: 'POSTED',
+        journalId: salesJournal.id,
+      }
+    });
+    
+    await prisma.journalEntry.create({
+      data: {
+        entryNumber: `JE-INV-${i}`,
+        date: new Date('2026-01-15T00:00:00Z'),
+        journalId: salesJournal.id,
+        status: 'POSTED',
+        customerInvoiceId: inv.id,
+        items: {
+          create: [
+            {
+              accountId: accountsRec.id,
+              partnerId: customer.id,
+              debit: total,
+              credit: 0
+            },
+            {
+              accountId: salesIncomeAcc.id,
+              analyticAccountId: corpAnalytic.id,
+              partnerId: customer.id,
+              debit: 0,
+              credit: total
+            }
+          ]
+        }
+      }
+    });
+  }
   console.log('--- Urban Furniture Database Seeding Completed Successfully! ---');
   console.log(`Seeded Categories: ${Object.keys(categories).length}`);
   console.log(`Seeded Products: ${productsData.length}`);
