@@ -116,9 +116,9 @@ const Layout = () => {
             </button>
             {expandedSections.report && (
               <div className="mt-1 space-y-1">
-                <NavLink to="/dashboard/reports" className={navItemClass}>Balancesheet</NavLink>
-                <NavLink to="/dashboard/reports" className={navItemClass}>Profit and Loss</NavLink>
-                <NavLink to="/dashboard/reports" className={navItemClass}>Budget Report</NavLink>
+                <NavLink to="/dashboard/reports?tab=BS" className={navItemClass}>Balancesheet</NavLink>
+                <NavLink to="/dashboard/reports?tab=PL" className={navItemClass}>Profit and Loss</NavLink>
+                <NavLink to="/dashboard/reports?tab=BUDGET" className={navItemClass}>Budget Report</NavLink>
               </div>
             )}
           </div>

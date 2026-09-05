@@ -1,21 +1,43 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../../api';
 
 const ReportsList = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  const queryParams = new URLSearchParams(location.search);
+  const initialTab = queryParams.get('tab') || 'PL';
+
   const [balanceSheet, setBalanceSheet] = useState(null);
   const [profitLoss, setProfitLoss] = useState(null);
+  const [budgetsReport, setBudgetsReport] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('PL'); // 'PL' or 'BS'
+  const [activeTab, setActiveTab] = useState(initialTab); // 'PL', 'BS', or 'BUDGET'
+
+  useEffect(() => {
+    const currentTab = new URLSearchParams(location.search).get('tab') || 'PL';
+    if (currentTab !== activeTab) {
+      setActiveTab(currentTab);
+    }
+  }, [location.search]);
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    navigate(`/dashboard/reports?tab=${tab}`, { replace: true });
+  };
 
   const fetchReports = async () => {
     try {
       setIsLoading(true);
-      const [bsRes, plRes] = await Promise.all([
+      const [bsRes, plRes, budgetRes] = await Promise.all([
         api.get('/reports/balance-sheet'),
-        api.get('/reports/profit-loss')
+        api.get('/reports/profit-loss'),
+        api.get('/analyticals/budgets')
       ]);
       setBalanceSheet(bsRes.data);
       setProfitLoss(plRes.data);
+      setBudgetsReport(budgetRes.data);
     } catch (err) {
       console.error(err);
       alert('Failed to fetch reports');
@@ -45,7 +67,7 @@ const ReportsList = () => {
       });
       csvContent += `Total Expenses,,${profitLoss.total_expenses.toFixed(2)}\n\n`;
       csvContent += `Net Income,,${profitLoss.net_profit.toFixed(2)}\n`;
-    } else {
+    } else if (type === 'BS') {
       csvContent += "Assets,Amount,Liabilities & Capital,Amount\n";
       
       // We need to pair them up side by side for the CSV
@@ -60,12 +82,18 @@ const ReportsList = () => {
       }
       
       csvContent += `Total Assets,${balanceSheet.total_assets.toFixed(2)},Total Liabilities & Capital,${(balanceSheet.total_liabilities + balanceSheet.total_capital).toFixed(2)}\n`;
+    } else if (type === 'BUDGET') {
+      csvContent += "Budget Name,Period Start,Period End,Analytic Account,Committed Amount,Achieved Amount,Achieved %\n";
+      budgetsReport.forEach(budget => {
+        csvContent += `${budget.name},${new Date(budget.period_start).toLocaleDateString()},${new Date(budget.period_end).toLocaleDateString()},${budget.analytic_account?.name || '-'},${Number(budget.committed_amount || budget.planned_amount).toFixed(2)},${Number(budget.achieved_amount || 0).toFixed(2)},${Number(budget.achieved_percent || 0).toFixed(2)}%\n`;
+      });
     }
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `${type === 'PL' ? 'Profit_Loss_Report' : 'Balance_Sheet'}_2026.csv`);
+    const filename = type === 'PL' ? 'Profit_Loss_Report' : type === 'BS' ? 'Balance_Sheet' : 'Budget_Report';
+    link.setAttribute("download", `${filename}_2026.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -81,16 +109,22 @@ const ReportsList = () => {
         <h2 className="text-2xl font-light text-odoo-primary">Financial Reports</h2>
         <div className="flex bg-gray-100 rounded p-1 border border-gray-200">
           <button 
-            onClick={() => setActiveTab('PL')}
+            onClick={() => handleTabChange('PL')}
             className={`px-4 py-2 text-sm rounded transition-colors ${activeTab === 'PL' ? 'bg-white shadow text-odoo-primary font-medium' : 'text-gray-500 hover:text-gray-700'}`}
           >
             Profit & Loss
           </button>
           <button 
-            onClick={() => setActiveTab('BS')}
+            onClick={() => handleTabChange('BS')}
             className={`px-4 py-2 text-sm rounded transition-colors ${activeTab === 'BS' ? 'bg-white shadow text-odoo-primary font-medium' : 'text-gray-500 hover:text-gray-700'}`}
           >
             Balance Sheet
+          </button>
+          <button 
+            onClick={() => handleTabChange('BUDGET')}
+            className={`px-4 py-2 text-sm rounded transition-colors ${activeTab === 'BUDGET' ? 'bg-white shadow text-odoo-primary font-medium' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Budget Report
           </button>
         </div>
       </div>
@@ -247,6 +281,72 @@ const ReportsList = () => {
               </div>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'BUDGET' && (
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden print:shadow-none print:border-none print:m-0">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-gray-50 to-white p-8 border-b border-gray-200">
+            <div className="flex justify-between items-start">
+              <div>
+                <h1 className="text-3xl font-light text-gray-900 mb-2">Budget Report</h1>
+                <p className="text-gray-500">As of {new Date().toLocaleDateString()}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-semibold text-gray-800">Urban Furniture</p>
+                <p className="text-sm text-gray-500">All Budgets Consolidated Overview</p>
+                <button 
+                  onClick={() => downloadCSV('BUDGET')}
+                  className="mt-4 px-4 py-2 bg-white border border-gray-300 rounded shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 print:hidden inline-flex items-center gap-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Export CSV
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="p-8">
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200 text-sm">
+                    <th className="py-4 px-6 font-semibold text-gray-600">Budget Name</th>
+                    <th className="py-4 px-6 font-semibold text-gray-600">Period</th>
+                    <th className="py-4 px-6 font-semibold text-gray-600">Analytic Account</th>
+                    <th className="py-4 px-6 font-semibold text-gray-600 text-right">Committed</th>
+                    <th className="py-4 px-6 font-semibold text-gray-600 text-right">Achieved</th>
+                    <th className="py-4 px-6 font-semibold text-gray-600 text-right">% Achieved</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {budgetsReport && budgetsReport.map(budget => (
+                    <tr key={budget.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="py-4 px-6 text-gray-800 font-medium">{budget.name}</td>
+                      <td className="py-4 px-6 text-gray-600 text-sm">
+                        {new Date(budget.period_start).toLocaleDateString()} - {new Date(budget.period_end).toLocaleDateString()}
+                      </td>
+                      <td className="py-4 px-6 text-gray-500 text-sm">{budget.analytic_account ? budget.analytic_account.name : '-'}</td>
+                      <td className="py-4 px-6 text-right text-gray-800">${Number(budget.committed_amount || budget.planned_amount).toFixed(2)}</td>
+                      <td className="py-4 px-6 text-right text-emerald-600 font-medium">${Number(budget.achieved_amount || 0).toFixed(2)}</td>
+                      <td className="py-4 px-6 text-right font-semibold text-gray-800">
+                        {Number(budget.achieved_percent || 0).toFixed(1)}%
+                      </td>
+                    </tr>
+                  ))}
+                  {(!budgetsReport || budgetsReport.length === 0) && (
+                    <tr>
+                      <td colSpan="6" className="py-8 text-center text-gray-500">No budgets found</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

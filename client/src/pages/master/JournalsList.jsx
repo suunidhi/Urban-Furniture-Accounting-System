@@ -88,14 +88,19 @@ const JournalsList = () => {
         </span>
       )
     },
-    { header: 'Short Code', accessor: 'code' },
-    { header: 'Default Debit', render: (row) => row.default_debit_account ? row.default_debit_account.name : '-' },
-    { header: 'Default Credit', render: (row) => row.default_credit_account ? row.default_credit_account.name : '-' },
+    { 
+      header: 'Default Account', 
+      render: (row) => {
+        if (row.default_debit_account) return row.default_debit_account.name;
+        if (row.default_credit_account) return row.default_credit_account.name;
+        return '-';
+      }
+    },
     {
       header: 'Actions',
       render: (row) => (
         <div className="flex gap-2">
-          <button onClick={(e) => { e.stopPropagation(); handleOpenForm(row); }} className="text-indigo-600 hover:text-indigo-900">Edit</button>
+          <button onClick={(e) => { e.stopPropagation(); handleOpenForm(row); }} className="text-indigo-600 hover:text-indigo-900 font-medium text-sm border border-indigo-200 bg-indigo-50 px-3 py-1 rounded">Edit</button>
         </div>
       )
     }

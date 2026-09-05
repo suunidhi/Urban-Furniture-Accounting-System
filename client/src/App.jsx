@@ -15,6 +15,7 @@ import JournalsList from './pages/master/JournalsList';
 // Transactions
 import PurchasesList from './pages/purchases/PurchasesList';
 import BillsList from './pages/purchases/BillsList';
+import PaymentsList from './pages/purchases/PaymentsList';
 import SalesList from './pages/sales/SalesList';
 import InvoicesList from './pages/sales/InvoicesList';
 
@@ -50,6 +51,7 @@ const AppContent = () => {
           <Route path="journals" element={<JournalsList />} />
           <Route path="purchases" element={<PurchasesList />} />
           <Route path="bills" element={<BillsList />} />
+          <Route path="payments" element={<PaymentsList />} />
           <Route path="sales" element={<SalesList />} />
           <Route path="invoices" element={<InvoicesList />} />
           <Route path="reports" element={<ReportsList />} />

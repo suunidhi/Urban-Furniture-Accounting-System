@@ -8,6 +8,8 @@ const BillsList = () => {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('bank');
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [errorMsg, setErrorMsg] = useState(null);
   const [showReport, setShowReport] = useState(false);
   const [reportData, setReportData] = useState(null);
@@ -75,9 +77,9 @@ const BillsList = () => {
       await api.post(`/payments/register`, {
         type: 'vendor',
         partner_id: selectedRow.vendor_id,
-        amount: selectedRow.outstanding_amount,
+        amount: parseFloat(paymentAmount) || selectedRow.outstanding_amount,
         payment_method: paymentMethod,
-        date: new Date().toISOString().split('T')[0],
+        date: paymentDate,
         reference: selectedRow.bill_number,
         bill_id: selectedRow.id
       });
@@ -133,12 +135,14 @@ const BillsList = () => {
               Post Bill
             </button>
           )}
-          {row.status === 'posted' && row.outstanding_amount > 0 && (
+          {(row.status === 'posted' || row.status === 'partly_paid') && row.outstanding_amount > 0 && (
             <button 
               onClick={(e) => { 
                 e.stopPropagation(); 
                 setSelectedRow(row);
                 setPaymentMethod('bank');
+                setPaymentAmount(row.outstanding_amount);
+                setPaymentDate(new Date().toISOString().split('T')[0]);
                 setPaymentModalOpen(true);
               }} 
               className="text-xs px-2 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded"
@@ -207,7 +211,18 @@ const BillsList = () => {
               </div>
               <div className="text-right">
                 <p className="text-sm text-gray-500 font-medium uppercase tracking-wide">Amount Due</p>
-                <p className="text-2xl font-bold text-odoo-primary">${Number(selectedRow.outstanding_amount).toFixed(2)}</p>
+                <div className="flex items-center justify-end gap-1 text-2xl font-bold text-odoo-primary mt-1">
+                  <span>$</span>
+                  <input 
+                    type="number"
+                    step="0.01"
+                    max={selectedRow.outstanding_amount}
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    className="w-32 bg-transparent border-b-2 border-odoo-primary focus:outline-none focus:border-odoo-primaryHover text-right"
+                  />
+                </div>
+                <p className="text-xs text-gray-400 mt-1">Max: ${Number(selectedRow.outstanding_amount).toFixed(2)}</p>
               </div>
             </div>
 
@@ -243,9 +258,9 @@ const BillsList = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Payment Date</label>
                 <input 
                   type="date"
-                  disabled
-                  value={new Date().toISOString().split('T')[0]}
-                  className="w-full border border-gray-300 rounded-md py-2 px-3 bg-gray-50 text-gray-500 sm:text-sm"
+                  value={paymentDate}
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-odoo-primary sm:text-sm"
                 />
               </div>
             </div>
@@ -412,12 +427,14 @@ const BillsList = () => {
                         Confirm
                       </button>
                     )}
-                    {bill.status === 'posted' && bill.outstanding_amount > 0 && (
+                    {(bill.status === 'posted' || bill.status === 'partly_paid') && bill.outstanding_amount > 0 && (
                       <button 
                         onClick={(e) => { 
                           e.stopPropagation(); 
                           setSelectedRow(bill);
                           setPaymentMethod('bank');
+                          setPaymentAmount(bill.outstanding_amount);
+                          setPaymentDate(new Date().toISOString().split('T')[0]);
                           setPaymentModalOpen(true);
                         }} 
                         className="text-xs px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded font-medium"
