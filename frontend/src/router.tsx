@@ -38,6 +38,16 @@ import { ReportsPage } from './features/reports/ReportsPage';
 import { PortalInvoicesPage } from './features/portal/PortalInvoicesPage';
 import { PortalBillsPage } from './features/portal/PortalBillsPage';
 
+import { useAuth } from './context/AuthContext';
+
+const RootIndexRedirect: React.FC = () => {
+  const { user } = useAuth();
+  if (user?.role === 'CONTACT_USER') {
+    return <Navigate to="/portal/invoices" replace />;
+  }
+  return <Navigate to="/dashboard" replace />;
+};
+
 export const router = createBrowserRouter([
   {
     path: '/login',
@@ -61,15 +71,23 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="/dashboard" replace />,
+        element: <RootIndexRedirect />,
       },
       {
         path: 'dashboard',
-        element: <DashboardPage />,
+        element: (
+          <ProtectedRoute allowedRoles={['ADMIN', 'ACCOUNTANT']}>
+            <DashboardPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'accounting/overview',
-        element: <DashboardPage />,
+        element: (
+          <ProtectedRoute allowedRoles={['ADMIN', 'ACCOUNTANT']}>
+            <DashboardPage />
+          </ProtectedRoute>
+        ),
       },
 
       // Master Data Routes

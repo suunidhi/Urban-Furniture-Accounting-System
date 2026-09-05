@@ -16,6 +16,7 @@ export const signupSchema = z
       .max(12, 'Login ID cannot exceed 12 characters')
       .regex(/^[a-zA-Z0-9_]+$/, 'Login ID can only contain letters, numbers, and underscores'),
     email: z.string().email('Invalid email address'),
+    role: z.enum(['ADMIN', 'ACCOUNTANT', 'CONTACT_USER']).default('ACCOUNTANT'),
     password: z
       .string()
       .min(8, 'Password must be more than 8 characters')

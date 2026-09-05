@@ -52,6 +52,7 @@ export class AuthService {
     loginId: string;
     email: string;
     password: string;
+    role?: UserRole;
   }) {
     // Check login ID uniqueness
     const existingLogin = await prisma.user.findUnique({
@@ -62,23 +63,46 @@ export class AuthService {
     }
 
     // Check email uniqueness
+    const normalizedEmail = data.email.trim().toLowerCase();
     const existingEmail = await prisma.user.findUnique({
-      where: { email: data.email.trim().toLowerCase() },
+      where: { email: normalizedEmail },
     });
     if (existingEmail) {
       throw new AppError('Email address is already registered in the system.', 400);
     }
 
     const passwordHash = await bcrypt.hash(data.password, 10);
+    const assignedRole = data.role || UserRole.ACCOUNTANT;
 
-    // As per Excalidraw mockup: SignUp creates an Invoicing User (ACCOUNTANT)
+    // If signing up as CONTACT_USER, link or create contact record
+    let linkedContactId: number | null = null;
+    if (assignedRole === UserRole.CONTACT_USER) {
+      const existingContact = await prisma.contact.findFirst({
+        where: { email: normalizedEmail },
+      });
+      if (existingContact) {
+        linkedContactId = existingContact.id;
+      } else {
+        const newContact = await prisma.contact.create({
+          data: {
+            name: data.name.trim(),
+            email: normalizedEmail,
+            type: 'CUSTOMER',
+            status: RecordStatus.ACTIVE,
+          },
+        });
+        linkedContactId = newContact.id;
+      }
+    }
+
     const user = await prisma.user.create({
       data: {
         name: data.name.trim(),
         loginId: data.loginId.trim(),
-        email: data.email.trim().toLowerCase(),
+        email: normalizedEmail,
         passwordHash,
-        role: UserRole.ACCOUNTANT,
+        role: assignedRole,
+        contactId: linkedContactId,
         status: RecordStatus.ACTIVE,
       },
       include: {

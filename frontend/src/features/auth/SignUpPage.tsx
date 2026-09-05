@@ -2,7 +2,49 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
-import { Lock, User as UserIcon, Mail, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { UserRole } from '../../types';
+import { 
+  Lock, 
+  User as UserIcon, 
+  Mail, 
+  AlertCircle, 
+  CheckCircle2, 
+  Shield, 
+  BookOpen, 
+  Users 
+} from 'lucide-react';
+
+interface RoleOption {
+  role: UserRole;
+  title: string;
+  badge: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+const ROLE_OPTIONS: RoleOption[] = [
+  {
+    role: 'ACCOUNTANT',
+    title: 'Accountant',
+    badge: 'Operational ERP',
+    description: 'Manage sales, purchases, journals, accounts, budgets, and financial reports.',
+    icon: BookOpen,
+  },
+  {
+    role: 'ADMIN',
+    title: 'Administrator',
+    badge: 'Full Access',
+    description: 'Full ERP access, plus user management, company settings, and master data controls.',
+    icon: Shield,
+  },
+  {
+    role: 'CONTACT_USER',
+    title: 'Client / Vendor',
+    badge: 'Self-Service Portal',
+    description: 'Dedicated portal to view customer invoices, vendor bills, and settle payments.',
+    icon: Users,
+  },
+];
 
 export const SignUpPage: React.FC = () => {
   const navigate = useNavigate();
@@ -12,6 +54,7 @@ export const SignUpPage: React.FC = () => {
     name: '',
     loginId: '',
     email: '',
+    role: 'ACCOUNTANT' as UserRole,
     password: '',
     confirmPassword: '',
   });
@@ -21,6 +64,11 @@ export const SignUpPage: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError(null);
+  };
+
+  const handleRoleSelect = (role: UserRole) => {
+    setFormData({ ...formData, role });
     setError(null);
   };
 
@@ -60,7 +108,11 @@ export const SignUpPage: React.FC = () => {
       if (res.data.success) {
         const { token, user } = res.data.data;
         login(token, user);
-        navigate('/dashboard');
+        if (user.role === 'CONTACT_USER') {
+          navigate('/portal/invoices');
+        } else {
+          navigate('/dashboard');
+        }
       }
     } catch (err: any) {
       const msg = err.response?.data?.message || 'Failed to create account. Please check your details.';
@@ -71,21 +123,21 @@ export const SignUpPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
+    <div className="min-h-screen bg-[#F8F9FA] flex flex-col justify-center py-10 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-lg text-center">
         <div className="mx-auto w-14 h-14 bg-[#714B67] rounded-xl flex items-center justify-center text-white font-black text-2xl shadow-md">
           UF
         </div>
         <h2 className="mt-4 text-2xl font-bold tracking-tight text-[#2F2F2F]">
-          Create Invoicing Account
+          Create Your Account
         </h2>
         <p className="text-xs text-[#017E84] font-semibold tracking-widest uppercase mt-0.5">
-          Join Urban Furniture Accounting
+          Select Your Access Role & Join Urban Furniture Accounting
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-6 sm:px-10 shadow-sm border border-[#E5E7EB] rounded-xl">
+      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-lg">
+        <div className="bg-white py-7 px-6 sm:px-9 shadow-sm border border-[#E5E7EB] rounded-xl">
           {error && (
             <div className="mb-5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -94,6 +146,59 @@ export const SignUpPage: React.FC = () => {
           )}
 
           <form className="space-y-4" onSubmit={handleSubmit}>
+            {/* Account Role Selector */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
+                Select Your Role & Permissions
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                {ROLE_OPTIONS.map((opt) => {
+                  const Icon = opt.icon;
+                  const isSelected = formData.role === opt.role;
+                  return (
+                    <button
+                      key={opt.role}
+                      type="button"
+                      onClick={() => handleRoleSelect(opt.role)}
+                      className={`p-3 rounded-lg border text-left transition-all relative flex flex-col justify-between ${
+                        isSelected
+                          ? 'border-[#714B67] bg-[#714B67]/5 shadow-sm ring-1 ring-[#714B67]'
+                          : 'border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50/60'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div
+                          className={`w-7 h-7 rounded-md flex items-center justify-center ${
+                            isSelected ? 'bg-[#714B67] text-white' : 'bg-gray-100 text-gray-600'
+                          }`}
+                        >
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        {isSelected && (
+                          <CheckCircle2 className="w-4 h-4 text-[#714B67]" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-gray-900">{opt.title}</div>
+                        <span
+                          className={`inline-block text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded mt-0.5 ${
+                            isSelected
+                              ? 'bg-[#714B67]/15 text-[#714B67]'
+                              : 'bg-gray-100 text-gray-500'
+                          }`}
+                        >
+                          {opt.badge}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-gray-500 mt-2 italic bg-gray-50 p-2 rounded border border-gray-100">
+                {ROLE_OPTIONS.find((r) => r.role === formData.role)?.description}
+              </p>
+            </div>
+
             <div>
               <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
                 Full Name
@@ -187,7 +292,9 @@ export const SignUpPage: React.FC = () => {
                 disabled={loading}
                 className="w-full btn-primary py-2.5 text-sm font-semibold tracking-wide uppercase"
               >
-                {loading ? 'Creating Invoicing Account...' : 'SIGN UP'}
+                {loading
+                  ? 'Creating Account...'
+                  : `SIGN UP AS ${formData.role === 'CONTACT_USER' ? 'PORTAL USER' : formData.role}`}
               </button>
             </div>
 
