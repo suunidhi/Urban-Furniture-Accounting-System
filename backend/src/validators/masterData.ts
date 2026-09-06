@@ -1,59 +1,133 @@
-import { z } from 'zod';
+import { ValidationError } from '../middleware/errorHandler';
 
-// Contact validation
-export const contactSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  type: z.enum(['CUSTOMER', 'VENDOR', 'BOTH']),
-  email: z.string().email('Invalid email address').optional().nullable().or(z.literal('')),
-  mobile: z.string().optional().nullable(),
-  street: z.string().optional().nullable(),
-  city: z.string().optional().nullable(),
-  state: z.string().optional().nullable(),
-  country: z.string().default('India'),
-  pincode: z.string().optional().nullable(),
-  imageUrl: z.string().optional().nullable(),
-});
+// Utility to push error
+const addError = (errors: any[], path: string, message: string) => {
+  errors.push({ path: [path], message });
+};
 
-// Category validation
-export const categorySchema = z.object({
-  name: z.string().min(2, 'Category name must be at least 2 characters'),
-  description: z.string().optional().nullable(),
-});
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Product validation
-export const productSchema = z.object({
-  name: z.string().min(2, 'Product name must be at least 2 characters'),
-  type: z.enum(['GOODS', 'SERVICE', 'COMBO']),
-  salesPrice: z.coerce.number().min(0, 'Sales price must be non-negative'),
-  costPrice: z.coerce.number().min(0, 'Cost price must be non-negative'),
-  categoryId: z.coerce.number().int().positive('Category is required'),
-  imageUrl: z.string().optional().nullable(),
-  paymentTerms: z.string().optional().nullable(),
-  allowPartialPayment: z.boolean().optional().nullable(),
-  defaultDueDate: z.string().optional().nullable(),
-});
+export const validateContact = (data: any) => {
+  const errors: any[] = [];
+  
+  if (!data.name || typeof data.name !== 'string' || data.name.length < 2) {
+    addError(errors, 'name', 'Name must be at least 2 characters');
+  }
 
-// Account validation
-export const accountSchema = z.object({
-  code: z.string().min(1, 'Account code is required'),
-  name: z.string().min(2, 'Account name must be at least 2 characters'),
-  type: z.enum(['ASSET', 'LIABILITY', 'EQUITY', 'INCOME', 'EXPENSE', 'OTHER_EXPENSE']),
-  parentId: z.coerce.number().int().positive().optional().nullable(),
-  isActive: z.boolean().default(true),
-});
+  if (!data.type || !['CUSTOMER', 'VENDOR', 'BOTH'].includes(data.type)) {
+    addError(errors, 'type', 'Valid type (CUSTOMER, VENDOR, BOTH) is required');
+  }
 
-// Journal validation
-export const journalSchema = z.object({
-  name: z.string().min(2, 'Journal name must be at least 2 characters'),
-  code: z.string().min(1, 'Journal code is required'),
-  type: z.enum(['SALES', 'PURCHASE', 'BANK', 'CASH', 'GENERAL']),
-  defaultDebitAccountId: z.coerce.number().int().positive().optional().nullable(),
-  defaultCreditAccountId: z.coerce.number().int().positive().optional().nullable(),
-});
+  if (data.email && data.email !== '') {
+    if (typeof data.email !== 'string' || !emailRegex.test(data.email)) {
+      addError(errors, 'email', 'Invalid email address');
+    }
+  }
 
-// Analytic Account validation
-export const analyticAccountSchema = z.object({
-  name: z.string().min(2, 'Analytic account name must be at least 2 characters'),
-  type: z.enum(['INCOME', 'EXPENSE']),
-  isActive: z.boolean().default(true),
-});
+  if (errors.length > 0) throw new ValidationError(errors);
+  
+  // Return with default
+  return {
+    ...data,
+    country: data.country || 'India'
+  };
+};
+
+export const validateCategory = (data: any) => {
+  const errors: any[] = [];
+
+  if (!data.name || typeof data.name !== 'string' || data.name.length < 2) {
+    addError(errors, 'name', 'Category name must be at least 2 characters');
+  }
+
+  if (errors.length > 0) throw new ValidationError(errors);
+  return data;
+};
+
+export const validateProduct = (data: any) => {
+  const errors: any[] = [];
+
+  if (!data.name || typeof data.name !== 'string' || data.name.length < 2) {
+    addError(errors, 'name', 'Product name must be at least 2 characters');
+  }
+
+  if (!data.type || !['GOODS', 'SERVICE', 'COMBO'].includes(data.type)) {
+    addError(errors, 'type', 'Valid product type is required');
+  }
+
+  if (data.salesPrice === undefined || isNaN(Number(data.salesPrice)) || Number(data.salesPrice) < 0) {
+    addError(errors, 'salesPrice', 'Sales price must be non-negative');
+  }
+
+  if (data.costPrice === undefined || isNaN(Number(data.costPrice)) || Number(data.costPrice) < 0) {
+    addError(errors, 'costPrice', 'Cost price must be non-negative');
+  }
+
+  if (!data.categoryId || isNaN(Number(data.categoryId)) || Number(data.categoryId) <= 0) {
+    addError(errors, 'categoryId', 'Category is required');
+  }
+
+  if (errors.length > 0) throw new ValidationError(errors);
+  return data;
+};
+
+export const validateAccount = (data: any) => {
+  const errors: any[] = [];
+
+  if (!data.code || typeof data.code !== 'string' || data.code.trim() === '') {
+    addError(errors, 'code', 'Account code is required');
+  }
+
+  if (!data.name || typeof data.name !== 'string' || data.name.length < 2) {
+    addError(errors, 'name', 'Account name must be at least 2 characters');
+  }
+
+  if (!data.type || !['ASSET', 'LIABILITY', 'EQUITY', 'INCOME', 'EXPENSE', 'OTHER_EXPENSE'].includes(data.type)) {
+    addError(errors, 'type', 'Valid account type is required');
+  }
+
+  if (errors.length > 0) throw new ValidationError(errors);
+
+  return {
+    ...data,
+    isActive: data.isActive !== undefined ? Boolean(data.isActive) : true
+  };
+};
+
+export const validateJournal = (data: any) => {
+  const errors: any[] = [];
+
+  if (!data.name || typeof data.name !== 'string' || data.name.length < 2) {
+    addError(errors, 'name', 'Journal name must be at least 2 characters');
+  }
+
+  if (!data.code || typeof data.code !== 'string' || data.code.trim() === '') {
+    addError(errors, 'code', 'Journal code is required');
+  }
+
+  if (!data.type || !['SALES', 'PURCHASE', 'BANK', 'CASH', 'GENERAL'].includes(data.type)) {
+    addError(errors, 'type', 'Valid journal type is required');
+  }
+
+  if (errors.length > 0) throw new ValidationError(errors);
+  return data;
+};
+
+export const validateAnalyticAccount = (data: any) => {
+  const errors: any[] = [];
+
+  if (!data.name || typeof data.name !== 'string' || data.name.length < 2) {
+    addError(errors, 'name', 'Analytic account name must be at least 2 characters');
+  }
+
+  if (!data.type || !['INCOME', 'EXPENSE'].includes(data.type)) {
+    addError(errors, 'type', 'Valid analytic account type is required');
+  }
+
+  if (errors.length > 0) throw new ValidationError(errors);
+
+  return {
+    ...data,
+    isActive: data.isActive !== undefined ? Boolean(data.isActive) : true
+  };
+};

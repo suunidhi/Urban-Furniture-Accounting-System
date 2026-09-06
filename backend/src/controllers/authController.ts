@@ -1,12 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../services/authService';
 import {
-  loginSchema,
-  signupSchema,
-  createUserSchema,
-  forgotPasswordSchema,
-  resetPasswordSchema,
-  verifySignupOtpSchema,
+  validateLogin,
+  validateSignup,
+  validateCreateUser,
+  validateForgotPassword,
+  validateResetPassword,
+  validateVerifySignupOtp,
 } from '../validators/auth';
 import { successResponse } from '../utils/response';
 import { AuthRequest } from '../middleware/auth';
@@ -14,7 +14,7 @@ import { AuthRequest } from '../middleware/auth';
 export class AuthController {
   static async login(req: Request, res: Response, next: NextFunction) {
     try {
-      const validated = loginSchema.parse(req.body);
+      const validated = validateLogin(req.body);
       const result = await AuthService.login(validated.loginId, validated.password);
       return successResponse(res, result, 'Logged in successfully');
     } catch (error) {
@@ -24,7 +24,7 @@ export class AuthController {
 
   static async signup(req: Request, res: Response, next: NextFunction) {
     try {
-      const validated = signupSchema.parse(req.body);
+      const validated = validateSignup(req.body);
       const result = await AuthService.signup(validated);
       return successResponse(res, result, 'OTP sent to your email. Please verify.', 201);
     } catch (error) {
@@ -34,7 +34,7 @@ export class AuthController {
 
   static async verifySignupOtp(req: Request, res: Response, next: NextFunction) {
     try {
-      const validated = verifySignupOtpSchema.parse(req.body);
+      const validated = validateVerifySignupOtp(req.body);
       const result = await AuthService.verifySignupOtp(validated.userId, validated.otpCode);
       return successResponse(res, result, 'Account verified successfully', 200);
     } catch (error) {
@@ -44,7 +44,7 @@ export class AuthController {
 
   static async createUser(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const validated = createUserSchema.parse(req.body);
+      const validated = validateCreateUser(req.body);
       const result = await AuthService.createUser(validated);
       return successResponse(res, result, 'User created successfully', 201);
     } catch (error) {
@@ -54,7 +54,7 @@ export class AuthController {
 
   static async forgotPassword(req: Request, res: Response, next: NextFunction) {
     try {
-      const validated = forgotPasswordSchema.parse(req.body);
+      const validated = validateForgotPassword(req.body);
       const result = await AuthService.forgotPassword(validated.loginId, validated.email);
       return successResponse(res, result, result.message);
     } catch (error) {
@@ -64,7 +64,7 @@ export class AuthController {
 
   static async resetPassword(req: Request, res: Response, next: NextFunction) {
     try {
-      const validated = resetPasswordSchema.parse(req.body);
+      const validated = validateResetPassword(req.body);
       const result = await AuthService.resetPassword(
         validated.loginId,
         validated.email,

@@ -1,107 +1,164 @@
-import { z } from 'zod';
+import { ValidationError } from '../middleware/errorHandler';
 
-// Purchase Order Line
-export const poLineSchema = z.object({
-  productId: z.coerce.number().int().positive('Product is required'),
-  analyticAccountId: z.coerce.number().int().positive().optional().nullable(),
-  quantity: z.coerce.number().positive('Quantity must be greater than 0'),
-  unitPrice: z.coerce.number().min(0, 'Unit price must be non-negative'),
-});
+// Utility to push error
+const addError = (errors: any[], path: string, message: string) => {
+  errors.push({ path: [path], message });
+};
 
-// Purchase Order
-export const purchaseOrderSchema = z.object({
-  vendorId: z.coerce.number().int().positive('Vendor is required'),
-  poDate: z.string().or(z.date()).optional(),
-  paymentTerms: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
-  lines: z.array(poLineSchema).min(1, 'At least one line item is required'),
-});
+// Common line validator logic
+const validateLineItem = (line: any, index: number, errors: any[], isBillOrInvoice: boolean = false) => {
+  if (!line.productId || isNaN(Number(line.productId)) || Number(line.productId) <= 0) {
+    addError(errors, `lines.${index}.productId`, 'Product is required');
+  }
+  if (!line.quantity || isNaN(Number(line.quantity)) || Number(line.quantity) <= 0) {
+    addError(errors, `lines.${index}.quantity`, 'Quantity must be greater than 0');
+  }
+  if (line.unitPrice === undefined || isNaN(Number(line.unitPrice)) || Number(line.unitPrice) < 0) {
+    addError(errors, `lines.${index}.unitPrice`, 'Unit price must be non-negative');
+  }
+  
+  if (isBillOrInvoice) {
+    if (!line.accountId || isNaN(Number(line.accountId)) || Number(line.accountId) <= 0) {
+      addError(errors, `lines.${index}.accountId`, 'Chart of Account is required');
+    }
+    // Set default tax rate if missing
+    if (line.taxRate === undefined || line.taxRate === null) {
+      line.taxRate = 0;
+    } else if (isNaN(Number(line.taxRate)) || Number(line.taxRate) < 0) {
+      addError(errors, `lines.${index}.taxRate`, 'Tax rate must be non-negative');
+    }
+  }
+};
 
-// Vendor Bill Line
-export const billLineSchema = z.object({
-  productId: z.coerce.number().int().positive('Product is required'),
-  description: z.string().optional().nullable(),
-  accountId: z.coerce.number().int().positive('Chart of Account is required'),
-  analyticAccountId: z.coerce.number().int().positive().optional().nullable(),
-  quantity: z.coerce.number().positive('Quantity must be greater than 0'),
-  unitPrice: z.coerce.number().min(0, 'Unit price must be non-negative'),
-  taxRate: z.coerce.number().min(0).default(0),
-});
+export const validatePurchaseOrder = (data: any) => {
+  const errors: any[] = [];
+  
+  if (!data.vendorId || isNaN(Number(data.vendorId)) || Number(data.vendorId) <= 0) {
+    addError(errors, 'vendorId', 'Vendor is required');
+  }
 
-// Vendor Bill
-export const vendorBillSchema = z.object({
-  vendorId: z.coerce.number().int().positive('Vendor is required'),
-  billDate: z.string().or(z.date()).optional(),
-  accountingDate: z.string().or(z.date()).optional(),
-  dueDate: z.string().or(z.date()),
-  paymentTerms: z.string().optional().nullable(),
-  journalId: z.coerce.number().int().positive('Journal is required'),
-  reference: z.string().optional().nullable(),
-  purchaseOrderId: z.coerce.number().int().positive().optional().nullable(),
-  lines: z.array(billLineSchema).min(1, 'At least one line item is required'),
-});
+  if (!data.lines || !Array.isArray(data.lines) || data.lines.length === 0) {
+    addError(errors, 'lines', 'At least one line item is required');
+  } else {
+    data.lines.forEach((line: any, index: number) => {
+      validateLineItem(line, index, errors, false);
+    });
+  }
 
-// Sales Order Line
-export const soLineSchema = z.object({
-  productId: z.coerce.number().int().positive('Product is required'),
-  analyticAccountId: z.coerce.number().int().positive().optional().nullable(),
-  quantity: z.coerce.number().positive('Quantity must be greater than 0'),
-  unitPrice: z.coerce.number().min(0, 'Unit price must be non-negative'),
-  taxRate: z.coerce.number().min(0).default(0),
-});
+  if (errors.length > 0) throw new ValidationError(errors);
+  return data;
+};
 
-// Sales Order
-export const salesOrderSchema = z.object({
-  customerId: z.coerce.number().int().positive('Customer is required'),
-  soDate: z.string().or(z.date()).optional(),
-  notes: z.string().optional().nullable(),
-  lines: z.array(soLineSchema).min(1, 'At least one line item is required'),
-});
+export const validateVendorBill = (data: any) => {
+  const errors: any[] = [];
 
-// Customer Invoice Line
-export const invoiceLineSchema = z.object({
-  productId: z.coerce.number().int().positive('Product is required'),
-  description: z.string().optional().nullable(),
-  accountId: z.coerce.number().int().positive('Chart of Account is required'),
-  analyticAccountId: z.coerce.number().int().positive().optional().nullable(),
-  quantity: z.coerce.number().positive('Quantity must be greater than 0'),
-  unitPrice: z.coerce.number().min(0, 'Unit price must be non-negative'),
-  taxRate: z.coerce.number().min(0).default(0),
-});
+  if (!data.vendorId || isNaN(Number(data.vendorId)) || Number(data.vendorId) <= 0) {
+    addError(errors, 'vendorId', 'Vendor is required');
+  }
+  
+  if (!data.dueDate) {
+    addError(errors, 'dueDate', 'Due date is required');
+  }
 
-// Customer Invoice
-export const customerInvoiceSchema = z.object({
-  customerId: z.coerce.number().int().positive('Customer is required'),
-  invoiceDate: z.string().or(z.date()).optional(),
-  dueDate: z.string().or(z.date()),
-  paymentTerms: z.string().optional().nullable(),
-  journalId: z.coerce.number().int().positive('Journal is required'),
-  reference: z.string().optional().nullable(),
-  salesOrderId: z.coerce.number().int().positive().optional().nullable(),
-  lines: z.array(invoiceLineSchema).min(1, 'At least one line item is required'),
-});
+  if (!data.journalId || isNaN(Number(data.journalId)) || Number(data.journalId) <= 0) {
+    addError(errors, 'journalId', 'Journal is required');
+  }
 
-// Update Customer Invoice
-export const updateInvoiceSchema = z.object({
-  invoiceDate: z.string().or(z.date()).optional(),
-  dueDate: z.string().or(z.date()).optional(),
-  paymentTerms: z.string().optional().nullable(),
-  journalId: z.coerce.number().int().positive().optional(),
-  reference: z.string().optional().nullable(),
-  lines: z.array(invoiceLineSchema).min(1, 'At least one line item is required').optional(),
-});
+  if (!data.lines || !Array.isArray(data.lines) || data.lines.length === 0) {
+    addError(errors, 'lines', 'At least one line item is required');
+  } else {
+    data.lines.forEach((line: any, index: number) => {
+      validateLineItem(line, index, errors, true);
+    });
+  }
 
-// Payment Registration
-export const paymentRegistrationSchema = z.object({
-  type: z.enum(['CUSTOMER', 'VENDOR']),
-  partnerId: z.coerce.number().int().positive('Partner is required'),
-  amount: z.coerce.number().positive('Payment amount must be greater than zero'),
-  paymentMethod: z.enum(['CASH', 'BANK']),
-  paymentDate: z.string().or(z.date()).optional(),
-  reference: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
-  invoiceId: z.coerce.number().int().positive().optional().nullable(),
-  customerInvoiceId: z.coerce.number().int().positive().optional().nullable(),
-  billId: z.coerce.number().int().positive().optional().nullable(),
-  vendorBillId: z.coerce.number().int().positive().optional().nullable(),
-});
+  if (errors.length > 0) throw new ValidationError(errors);
+  return data;
+};
+
+export const validateSalesOrder = (data: any) => {
+  const errors: any[] = [];
+
+  if (!data.customerId || isNaN(Number(data.customerId)) || Number(data.customerId) <= 0) {
+    addError(errors, 'customerId', 'Customer is required');
+  }
+
+  if (!data.lines || !Array.isArray(data.lines) || data.lines.length === 0) {
+    addError(errors, 'lines', 'At least one line item is required');
+  } else {
+    data.lines.forEach((line: any, index: number) => {
+      validateLineItem(line, index, errors, false); // For SO we don't strictly need accountId in early validation
+    });
+  }
+
+  if (errors.length > 0) throw new ValidationError(errors);
+  return data;
+};
+
+export const validateCustomerInvoice = (data: any) => {
+  const errors: any[] = [];
+
+  if (!data.customerId || isNaN(Number(data.customerId)) || Number(data.customerId) <= 0) {
+    addError(errors, 'customerId', 'Customer is required');
+  }
+
+  if (!data.dueDate) {
+    addError(errors, 'dueDate', 'Due date is required');
+  }
+
+  if (!data.journalId || isNaN(Number(data.journalId)) || Number(data.journalId) <= 0) {
+    addError(errors, 'journalId', 'Journal is required');
+  }
+
+  if (!data.lines || !Array.isArray(data.lines) || data.lines.length === 0) {
+    addError(errors, 'lines', 'At least one line item is required');
+  } else {
+    data.lines.forEach((line: any, index: number) => {
+      validateLineItem(line, index, errors, true);
+    });
+  }
+
+  if (errors.length > 0) throw new ValidationError(errors);
+  return data;
+};
+
+export const validateUpdateInvoice = (data: any) => {
+  const errors: any[] = [];
+
+  // Validation logic for update is more lenient, only check if lines exist
+  if (data.lines) {
+    if (!Array.isArray(data.lines) || data.lines.length === 0) {
+      addError(errors, 'lines', 'At least one line item is required');
+    } else {
+      data.lines.forEach((line: any, index: number) => {
+        validateLineItem(line, index, errors, true);
+      });
+    }
+  }
+
+  if (errors.length > 0) throw new ValidationError(errors);
+  return data;
+};
+
+export const validatePaymentRegistration = (data: any) => {
+  const errors: any[] = [];
+
+  if (!data.type || !['CUSTOMER', 'VENDOR'].includes(data.type)) {
+    addError(errors, 'type', 'Payment type must be CUSTOMER or VENDOR');
+  }
+
+  if (!data.partnerId || isNaN(Number(data.partnerId)) || Number(data.partnerId) <= 0) {
+    addError(errors, 'partnerId', 'Partner is required');
+  }
+
+  if (!data.amount || isNaN(Number(data.amount)) || Number(data.amount) <= 0) {
+    addError(errors, 'amount', 'Payment amount must be greater than zero');
+  }
+
+  if (!data.paymentMethod || !['CASH', 'BANK'].includes(data.paymentMethod)) {
+    addError(errors, 'paymentMethod', 'Payment method must be CASH or BANK');
+  }
+
+  if (errors.length > 0) throw new ValidationError(errors);
+  return data;
+};

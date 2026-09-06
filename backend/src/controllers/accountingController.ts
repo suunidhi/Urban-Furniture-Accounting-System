@@ -1,23 +1,35 @@
 import { Request, Response, NextFunction } from 'express';
 import { AccountingService } from '../services/accountingService';
 import { successResponse } from '../utils/response';
-import { z } from 'zod';
+import { ValidationError } from '../middleware/errorHandler';
 
-const manualEntrySchema = z.object({
-  date: z.string(),
-  journalId: z.number().int().positive(),
-  reference: z.string().optional(),
-  items: z.array(
-    z.object({
-      accountId: z.number().int().positive(),
-      partnerId: z.number().int().positive().nullable().optional(),
-      analyticAccountId: z.number().int().positive().nullable().optional(),
-      description: z.string().optional(),
-      debit: z.number().min(0),
-      credit: z.number().min(0),
-    })
-  ).min(2),
-});
+const validateManualEntry = (data: any) => {
+  const errors: any[] = [];
+  
+  if (!data.date) errors.push({ path: ['date'], message: 'Date is required' });
+  if (!data.journalId || isNaN(Number(data.journalId)) || Number(data.journalId) <= 0) {
+    errors.push({ path: ['journalId'], message: 'Valid journal ID is required' });
+  }
+
+  if (!data.items || !Array.isArray(data.items) || data.items.length < 2) {
+    errors.push({ path: ['items'], message: 'At least 2 items are required for double-entry bookkeeping' });
+  } else {
+    data.items.forEach((item: any, index: number) => {
+      if (!item.accountId || isNaN(Number(item.accountId)) || Number(item.accountId) <= 0) {
+        errors.push({ path: [`items.${index}.accountId`], message: 'Account ID is required' });
+      }
+      if (item.debit === undefined || isNaN(Number(item.debit)) || Number(item.debit) < 0) {
+        errors.push({ path: [`items.${index}.debit`], message: 'Debit must be non-negative' });
+      }
+      if (item.credit === undefined || isNaN(Number(item.credit)) || Number(item.credit) < 0) {
+        errors.push({ path: [`items.${index}.credit`], message: 'Credit must be non-negative' });
+      }
+    });
+  }
+
+  if (errors.length > 0) throw new ValidationError(errors);
+  return data;
+};
 
 export class AccountingController {
   static async listJournalEntries(req: Request, res: Response, next: NextFunction) {
@@ -48,7 +60,7 @@ export class AccountingController {
 
   static async createManualJournalEntry(req: Request, res: Response, next: NextFunction) {
     try {
-      const validated = manualEntrySchema.parse(req.body);
+      const validated = validateManualEntry(req.body);
       const entry = await AccountingService.createManualJournalEntry(validated);
       return successResponse(res, entry, 'Manual journal entry posted successfully', 201);
     } catch (error) {
