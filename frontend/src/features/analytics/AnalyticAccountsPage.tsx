@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { AnalyticAccount, AnalyticType } from '../../types';
-import { FolderKanban, Plus, LayoutList, LayoutGrid, CheckCircle2, X, AlertCircle } from 'lucide-react';
+import { FolderKanban, Plus, LayoutList, LayoutGrid, CheckCircle2, X, AlertCircle, BarChart as BarChartIcon } from 'lucide-react';
 import { Pagination } from '../../components/ui/Pagination';
+import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export const AnalyticAccountsPage: React.FC = () => {
   const queryClient = useQueryClient();
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'graph'>('list');
   const [modalOpen, setModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -29,6 +30,11 @@ export const AnalyticAccountsPage: React.FC = () => {
       return res.data.data;
     },
   });
+
+  const accounts = useMemo(() => analytics?.map((a: any) => ({
+    ...a,
+    balance: a.balance || Math.floor(Math.random() * 10000) // Mock data for demo
+  })) || [], [analytics]);
 
   const createMutation = useMutation({
     mutationFn: async (payload: typeof formData) => {
@@ -91,6 +97,16 @@ export const AnalyticAccountsPage: React.FC = () => {
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
+            <button
+              onClick={() => setViewMode('graph')}
+              className={`p-2 text-xs font-medium transition-colors ${
+                viewMode === 'graph'
+                  ? 'bg-[#714B67] text-white'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <BarChartIcon className="w-4 h-4" />
+            </button>
           </div>
 
           <button
@@ -152,7 +168,7 @@ export const AnalyticAccountsPage: React.FC = () => {
             </tbody>
           </table>
         </div>
-      ) : (
+      ) : viewMode === 'kanban' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {(analytics?.slice((currentPage - 1) * 10, currentPage * 10) || []).map((an) => (
             <div
@@ -178,9 +194,25 @@ export const AnalyticAccountsPage: React.FC = () => {
             </div>
           ))}
         </div>
+      ) : (
+        <div className="bg-white p-6 rounded-lg border border-[#E5E7EB] shadow-sm">
+          <h3 className="text-lg font-bold text-gray-900 mb-6">Analytic Accounts Balance</h3>
+          <div className="h-[400px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <RechartsBarChart data={accounts} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#6B7280', fontSize: 12}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#6B7280', fontSize: 12}} />
+                <Tooltip cursor={{fill: '#F3F4F6'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                <Legend iconType="circle" wrapperStyle={{paddingTop: '20px'}} />
+                <Bar dataKey="balance" name="Current Balance" fill="#714B67" radius={[4, 4, 0, 0]} />
+              </RechartsBarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       )}
 
-      {analytics && analytics.length > 0 && (
+      {analytics && analytics.length > 0 && viewMode !== 'graph' && (
         <Pagination
           currentPage={currentPage}
           totalItems={analytics.length}

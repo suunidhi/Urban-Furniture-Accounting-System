@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -22,15 +22,17 @@ import {
   Edit2,
   Archive,
   RotateCcw,
-  DollarSign
+  DollarSign,
+  BarChart as BarChartIcon
 } from 'lucide-react';
 import { useDebounce } from '../../hooks/useDebounce';
 import { Pagination } from '../../components/ui/Pagination';
+import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export const ProductsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { isAdmin } = useAuth();
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'graph'>('list');
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 350);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
@@ -104,6 +106,18 @@ export const ProductsPage: React.FC = () => {
       return res.data.data;
     },
   });
+
+  const graphData = useMemo(() => {
+    if (!products) return [];
+    return [...products]
+      .sort((a, b) => Number(b.salesPrice) - Number(a.salesPrice))
+      .slice(0, 10)
+      .map(p => ({
+        name: p.name.length > 15 ? p.name.substring(0, 15) + '...' : p.name,
+        price: Number(p.salesPrice),
+        cost: Number(p.costPrice || 0)
+      }));
+  }, [products]);
 
   // Fetch single product details with stock metrics and related transactions
   const { data: productDetail } = useQuery<any>({
@@ -209,17 +223,6 @@ export const ProductsPage: React.FC = () => {
     setError(null);
   };
 
-  const handleOpenPaymentModal = (tx: any) => {
-    setPaymentModalTx(tx);
-    setPaymentFormData({
-      amount: Number(tx.amountDue) || 0,
-      paymentMethod: 'BANK',
-      paymentDate: new Date().toISOString().split('T')[0],
-      reference: `PARTIAL-${tx.reference}`,
-      notes: `Installment for ${tx.reference}`,
-    });
-  };
-
   const handlePaymentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!paymentModalTx) return;
@@ -243,7 +246,6 @@ export const ProductsPage: React.FC = () => {
     addPaymentMutation.mutate(payload);
   };
 
-  // Create on-the-fly category mutation
   const createCategoryMutation = useMutation({
     mutationFn: async (name: string) => {
       const res = await api.post('/categories', { name });
@@ -273,7 +275,6 @@ export const ProductsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Top Action & Filter Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-lg border border-[#E5E7EB] shadow-sm">
         <div>
           <h1 className="text-2xl font-bold text-[#2F2F2F] tracking-tight flex items-center gap-2">
@@ -286,7 +287,6 @@ export const ProductsPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* View mode toggle */}
           <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
             <button
               onClick={() => setViewMode('list')}
@@ -310,6 +310,17 @@ export const ProductsPage: React.FC = () => {
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
+            <button
+              onClick={() => setViewMode('graph')}
+              className={`p-2 text-xs font-medium transition-colors ${
+                viewMode === 'graph'
+                  ? 'bg-[#714B67] text-white'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+              title="Graph View"
+            >
+              <BarChartIcon className="w-4 h-4" />
+            </button>
           </div>
 
           <button
@@ -328,7 +339,6 @@ export const ProductsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
       <div className="bg-white p-4 rounded-lg border border-[#E5E7EB] shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
           <button
@@ -355,7 +365,6 @@ export const ProductsPage: React.FC = () => {
             </button>
           ))}
 
-          {/* Status Tabs */}
           <div className="flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg text-xs ml-0 sm:ml-2">
             {(['ACTIVE', 'ARCHIVED', 'ALL'] as const).map((s) => (
               <button
@@ -385,7 +394,6 @@ export const ProductsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Main View: List or Kanban */}
       {isLoading ? (
         <div className="bg-white p-12 text-center text-gray-500 rounded-lg border border-gray-200">
           Loading products...
@@ -395,7 +403,6 @@ export const ProductsPage: React.FC = () => {
           No products found.
         </div>
       ) : viewMode === 'list' ? (
-        /* List View */
         <div className="bg-white rounded-lg border border-[#E5E7EB] shadow-sm overflow-hidden">
           <table className="w-full text-left border-collapse text-sm">
             <thead>
@@ -506,8 +513,7 @@ export const ProductsPage: React.FC = () => {
             </tbody>
           </table>
         </div>
-      ) : (
-        /* Kanban View */
+      ) : viewMode === 'kanban' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {(products?.slice((currentPage - 1) * 10, currentPage * 10) || []).map((p) => (
             <div
@@ -593,9 +599,29 @@ export const ProductsPage: React.FC = () => {
             </div>
           ))}
         </div>
+      ) : (
+        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-xs">
+          <h3 className="text-lg font-medium text-gray-900 mb-6">Top 10 Products by Price</h3>
+          <div className="h-[400px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <RechartsBarChart
+                data={graphData}
+                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#6B7280', fontSize: 12}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#6B7280', fontSize: 12}} tickFormatter={(value) => `₹${value}`} />
+                <Tooltip cursor={{fill: '#F3F4F6'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                <Legend iconType="circle" wrapperStyle={{paddingTop: '20px'}} />
+                <Bar dataKey="cost" name="Cost" fill="#9CA3AF" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="price" name="Price" fill="#714B67" radius={[4, 4, 0, 0]} />
+              </RechartsBarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       )}
 
-      {products && products.length > 0 && (
+      {products && products.length > 0 && viewMode !== 'graph' && (
         <Pagination
           currentPage={currentPage}
           totalItems={products.length}

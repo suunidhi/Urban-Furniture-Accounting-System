@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { Budget, AnalyticAccount, Contact, BudgetStatus } from '../../types';
@@ -17,14 +17,16 @@ import {
   User, 
   X, 
   GitFork, 
-  ArrowRight 
+  ArrowRight,
+  BarChart as BarChartIcon
 } from 'lucide-react';
 import { useDebounce } from '../../hooks/useDebounce';
 import { Pagination } from '../../components/ui/Pagination';
+import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export const BudgetsPage: React.FC = () => {
   const queryClient = useQueryClient();
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'graph'>('list');
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 350);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -222,6 +224,14 @@ export const BudgetsPage: React.FC = () => {
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
+            <button
+              onClick={() => setViewMode('graph')}
+              className={`p-1.5 rounded-lg text-xs font-medium transition-colors ${
+                viewMode === 'graph' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <BarChartIcon className="w-4 h-4" />
+            </button>
           </div>
 
           <button
@@ -371,7 +381,7 @@ export const BudgetsPage: React.FC = () => {
             </table>
           </div>
         </div>
-      ) : (
+      ) : viewMode === 'kanban' ? (
         /* Kanban View */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {(budgets?.slice((currentPage - 1) * 10, currentPage * 10) || []).map((b) => {
@@ -468,9 +478,31 @@ export const BudgetsPage: React.FC = () => {
             );
           })}
         </div>
+      ) : (
+        /* Graph View */
+        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-xs">
+          <h3 className="text-lg font-medium text-gray-900 mb-6">Budgets Overview (Amount vs Achieved)</h3>
+          <div className="h-[400px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <RechartsBarChart
+                data={budgets}
+                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#6B7280', fontSize: 12}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#6B7280', fontSize: 12}} tickFormatter={(value) => `₹${value}`} />
+                <Tooltip cursor={{fill: '#F3F4F6'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                <Legend iconType="circle" wrapperStyle={{paddingTop: '20px'}} />
+                <Bar dataKey="committedAmount" name="Planned Amount" fill="#9CA3AF" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="achievedAmount" name="Achieved Amount" fill="#714B67" radius={[4, 4, 0, 0]} />
+              </RechartsBarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       )}
 
-      {budgets && budgets.length > 0 && (
+      {/* Pagination */}
+      {!isLoading && budgets && budgets.length > 10 && viewMode !== 'graph' && (
         <Pagination
           currentPage={currentPage}
           totalItems={budgets.length}

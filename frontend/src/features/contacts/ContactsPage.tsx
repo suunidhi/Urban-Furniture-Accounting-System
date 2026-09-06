@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -21,15 +21,17 @@ import {
   CreditCard,
   Edit2,
   Archive,
-  RotateCcw
+  RotateCcw,
+  BarChart as BarChartIcon
 } from 'lucide-react';
 import { useDebounce } from '../../hooks/useDebounce';
 import { Pagination } from '../../components/ui/Pagination';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export const ContactsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { isAdmin } = useAuth();
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'graph'>('list');
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 350);
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
@@ -84,6 +86,17 @@ export const ContactsPage: React.FC = () => {
       return res.data.data;
     },
   });
+
+  const graphData = useMemo(() => {
+    if (!contacts) return [];
+    const typeCount: Record<string, number> = {};
+    contacts.forEach(c => {
+      typeCount[c.type] = (typeCount[c.type] || 0) + 1;
+    });
+    return Object.entries(typeCount).map(([name, value]) => ({ name, value }));
+  }, [contacts]);
+
+  const COLORS = ['#714B67', '#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
   // Fetch single contact detail
   const { data: contactDetail, isLoading: isDetailLoading } = useQuery<any>({
@@ -235,6 +248,17 @@ export const ContactsPage: React.FC = () => {
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
+            <button
+              onClick={() => setViewMode('graph')}
+              className={`p-2 text-xs font-medium transition-colors ${
+                viewMode === 'graph'
+                  ? 'bg-[#714B67] text-white'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+              title="Graph View"
+            >
+              <BarChartIcon className="w-4 h-4" />
+            </button>
           </div>
 
           <button
@@ -251,6 +275,7 @@ export const ContactsPage: React.FC = () => {
       </div>
 
       {/* Filter and Search Bar */}
+      {viewMode !== 'graph' && (
       <div className="bg-white p-4 rounded-lg border border-[#E5E7EB] shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           {['ALL', 'CUSTOMER', 'VENDOR', 'BOTH'].map((t) => (
@@ -296,8 +321,9 @@ export const ContactsPage: React.FC = () => {
           />
         </div>
       </div>
+      )}
 
-      {/* Main View: List or Kanban */}
+      {/* Main View: List, Kanban or Graph */}
       {isLoading ? (
         <div className="bg-white p-12 text-center text-gray-500 rounded-lg border border-gray-200">
           Loading contacts...
@@ -406,7 +432,7 @@ export const ContactsPage: React.FC = () => {
             </tbody>
           </table>
         </div>
-      ) : (
+      ) : viewMode === 'kanban' ? (
         /* Kanban View */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {(contacts?.slice((currentPage - 1) * 10, currentPage * 10) || []).map((c) => (
@@ -496,9 +522,38 @@ export const ContactsPage: React.FC = () => {
             </div>
           ))}
         </div>
+      ) : (
+        /* Graph View */
+        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-xs">
+          <h3 className="text-lg font-medium text-gray-900 mb-6">Contacts by Type</h3>
+          <div className="h-[400px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={graphData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={80}
+                  outerRadius={120}
+                  fill="#8884d8"
+                  paddingAngle={5}
+                  dataKey="value"
+                  label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
+                >
+                  {graphData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                <Legend verticalAlign="bottom" height={36}/>
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       )}
 
-      {contacts && contacts.length > 0 && (
+      {/* Pagination */}
+      {!isLoading && contacts && contacts.length > 0 && viewMode !== 'graph' && (
         <Pagination
           currentPage={currentPage}
           totalItems={contacts.length}

@@ -102,7 +102,7 @@ export const VendorBillsPage: React.FC = () => {
         if (found) vendorId = found.id;
       }
       
-      const purchaseJournal = journals?.find(j => j.type === 'PURCHASES') || journals?.[0];
+      const purchaseJournal = journals?.find(j => j.type === 'PURCHASE') || journals?.[0];
       const defaultJournalId = purchaseJournal ? purchaseJournal.id : 0;
       const expenseAcc = accounts?.find(a => a.type === 'EXPENSE') || accounts?.[0];
       const defaultAccId = expenseAcc ? expenseAcc.id : 0;
