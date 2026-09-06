@@ -4,6 +4,7 @@ import prisma from '../config/db';
 import { env } from '../config/env';
 import { AppError } from '../middleware/errorHandler';
 import { UserRole, RecordStatus } from '@prisma/client';
+import { emailService } from './emailService';
 
 export class AuthService {
   static async login(loginId: string, password: string) {
@@ -20,6 +21,10 @@ export class AuthService {
 
     if (!user) {
       throw new AppError('Invalid Login Id or Password', 401);
+    }
+
+    if (!user.isVerified) {
+      throw new AppError('Account is not verified. Please verify your email first.', 403);
     }
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
@@ -74,7 +79,6 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(data.password, 10);
     const assignedRole = data.role || UserRole.ACCOUNTANT;
 
-    // If signing up as CONTACT_USER, link or create contact record
     let linkedContactId: number | null = null;
     if (assignedRole === UserRole.CONTACT_USER) {
       const existingContact = await prisma.contact.findFirst({
@@ -95,6 +99,9 @@ export class AuthService {
       }
     }
 
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 mins
+
     const user = await prisma.user.create({
       data: {
         name: data.name.trim(),
@@ -104,25 +111,64 @@ export class AuthService {
         role: assignedRole,
         contactId: linkedContactId,
         status: RecordStatus.ACTIVE,
+        isVerified: false,
+        otpCode: otp,
+        otpExpiry,
       },
       include: {
         contact: true,
       },
     });
 
+    try {
+      await emailService.sendSignupOtp(user.email, otp);
+    } catch (error) {
+      console.error('Error sending OTP email:', error);
+      // We don't throw an error here, but in production we might want to handle it
+    }
+
+    return {
+      requireOtp: true,
+      userId: user.id,
+    };
+  }
+
+  static async verifySignupOtp(userId: number, otpCode: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { contact: true },
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+    if (user.isVerified) {
+      throw new AppError('Account is already verified', 400);
+    }
+
+    if (user.otpCode !== otpCode || !user.otpExpiry || user.otpExpiry < new Date()) {
+      throw new AppError('Invalid or expired OTP', 400);
+    }
+
+    const verifiedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { isVerified: true, otpCode: null, otpExpiry: null },
+      include: { contact: true },
+    });
+
     const token = jwt.sign(
       {
-        id: user.id,
-        loginId: user.loginId,
-        email: user.email,
-        role: user.role,
-        contactId: user.contactId,
+        id: verifiedUser.id,
+        loginId: verifiedUser.loginId,
+        email: verifiedUser.email,
+        role: verifiedUser.role,
+        contactId: verifiedUser.contactId,
       },
       env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
-    const { passwordHash: _, ...sanitizedUser } = user;
+    const { passwordHash: _, otpCode: __, otpExpiry: ___, ...sanitizedUser } = verifiedUser;
 
     return {
       token,
@@ -186,12 +232,26 @@ export class AuthService {
       throw new AppError('No active user account found matching the provided Login ID and Email.', 404);
     }
 
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 mins
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { otpCode: otp, otpExpiry },
+    });
+
+    try {
+      await emailService.sendPasswordResetOtp(user.email, otp);
+    } catch (error) {
+      console.error('Error sending password reset email:', error);
+    }
+
     return {
-      message: 'User verified. You may proceed to reset your password.',
+      message: 'OTP sent to your email address.',
     };
   }
 
-  static async resetPassword(loginId: string, email: string, newPassword: string) {
+  static async resetPassword(loginId: string, email: string, otpCode: string, newPassword: string) {
     const user = await prisma.user.findFirst({
       where: {
         loginId: loginId.trim(),
@@ -203,11 +263,15 @@ export class AuthService {
       throw new AppError('No account found matching the provided Login ID and Email.', 404);
     }
 
+    if (user.otpCode !== otpCode || !user.otpExpiry || user.otpExpiry < new Date()) {
+      throw new AppError('Invalid or expired OTP', 400);
+    }
+
     const passwordHash = await bcrypt.hash(newPassword, 10);
 
     await prisma.user.update({
       where: { id: user.id },
-      data: { passwordHash },
+      data: { passwordHash, otpCode: null, otpExpiry: null },
     });
 
     return {

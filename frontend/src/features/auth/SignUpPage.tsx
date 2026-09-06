@@ -62,6 +62,9 @@ export const SignUpPage: React.FC = () => {
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState<1 | 2>(1);
+  const [otpCode, setOtpCode] = useState('');
+  const [userId, setUserId] = useState<number | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -107,6 +110,38 @@ export const SignUpPage: React.FC = () => {
     try {
       const res = await api.post('/auth/signup', formData);
       if (res.data.success) {
+        if (res.data.data.requireOtp) {
+          setUserId(res.data.data.userId);
+          setStep(2);
+        } else {
+          // Fallback if no OTP required (shouldn't happen with our backend changes)
+          const { token, user } = res.data.data;
+          login(token, user);
+          navigate(user.role === 'CONTACT_USER' ? '/portal/invoices' : '/dashboard');
+        }
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Failed to create account. Please check your details.';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId) return;
+    if (otpCode.length !== 6) {
+      setError('OTP must be 6 digits.');
+      return;
+    }
+
+    setError(null);
+    setLoading(true);
+
+    try {
+      const res = await api.post('/auth/verify-signup-otp', { userId, otpCode });
+      if (res.data.success) {
         const { token, user } = res.data.data;
         login(token, user);
         if (user.role === 'CONTACT_USER') {
@@ -116,8 +151,7 @@ export const SignUpPage: React.FC = () => {
         }
       }
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Failed to create account. Please check your details.';
-      setError(msg);
+      setError(err.response?.data?.message || 'Invalid or expired OTP.');
     } finally {
       setLoading(false);
     }
@@ -144,166 +178,213 @@ export const SignUpPage: React.FC = () => {
             </div>
           )}
 
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            {/* Account Role Selector */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
-                Select Your Role & Permissions
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                {ROLE_OPTIONS.map((opt) => {
-                  const Icon = opt.icon;
-                  const isSelected = formData.role === opt.role;
-                  return (
-                    <button
-                      key={opt.role}
-                      type="button"
-                      onClick={() => handleRoleSelect(opt.role)}
-                      className={`p-3 rounded-lg border text-left transition-all relative flex flex-col justify-between ${
-                        isSelected
-                          ? 'border-[#714B67] bg-[#714B67]/5 shadow-sm ring-1 ring-[#714B67]'
-                          : 'border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50/60'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div
-                          className={`w-7 h-7 rounded-md flex items-center justify-center ${
-                            isSelected ? 'bg-[#714B67] text-white' : 'bg-gray-100 text-gray-600'
-                          }`}
-                        >
-                          <Icon className="w-4 h-4" />
+          {step === 1 ? (
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              {/* Account Role Selector */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
+                  Select Your Role & Permissions
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {ROLE_OPTIONS.map((opt) => {
+                    const Icon = opt.icon;
+                    const isSelected = formData.role === opt.role;
+                    return (
+                      <button
+                        key={opt.role}
+                        type="button"
+                        onClick={() => handleRoleSelect(opt.role)}
+                        className={`p-3 rounded-lg border text-left transition-all relative flex flex-col justify-between ${
+                          isSelected
+                            ? 'border-[#714B67] bg-[#714B67]/5 shadow-sm ring-1 ring-[#714B67]'
+                            : 'border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50/60'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div
+                            className={`w-7 h-7 rounded-md flex items-center justify-center ${
+                              isSelected ? 'bg-[#714B67] text-white' : 'bg-gray-100 text-gray-600'
+                            }`}
+                          >
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          {isSelected && (
+                            <CheckCircle2 className="w-4 h-4 text-[#714B67]" />
+                          )}
                         </div>
-                        {isSelected && (
-                          <CheckCircle2 className="w-4 h-4 text-[#714B67]" />
-                        )}
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-gray-900">{opt.title}</div>
-                        <span
-                          className={`inline-block text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded mt-0.5 ${
-                            isSelected
-                              ? 'bg-[#714B67]/15 text-[#714B67]'
-                              : 'bg-gray-100 text-gray-500'
-                          }`}
-                        >
-                          {opt.badge}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
+                        <div>
+                          <div className="text-xs font-bold text-gray-900">{opt.title}</div>
+                          <span
+                            className={`inline-block text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded mt-0.5 ${
+                              isSelected
+                                ? 'bg-[#714B67]/15 text-[#714B67]'
+                                : 'bg-gray-100 text-gray-500'
+                            }`}
+                          >
+                            {opt.badge}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-gray-500 mt-2 italic bg-gray-50 p-2 rounded border border-gray-100">
+                  {ROLE_OPTIONS.find((r) => r.role === formData.role)?.description}
+                </p>
               </div>
-              <p className="text-[11px] text-gray-500 mt-2 italic bg-gray-50 p-2 rounded border border-gray-100">
-                {ROLE_OPTIONS.find((r) => r.role === formData.role)?.description}
-              </p>
-            </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
-                Full Name
-              </label>
-              <input
-                type="text"
-                name="name"
-                required
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="e.g. Rahul Sharma"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
-                Login ID <span className="text-gray-400 font-normal">(6-12 characters)</span>
-              </label>
-              <div className="relative">
-                <UserIcon className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                  Full Name
+                </label>
                 <input
                   type="text"
-                  name="loginId"
+                  name="name"
                   required
-                  value={formData.loginId}
+                  value={formData.name}
                   onChange={handleChange}
-                  placeholder="Unique ID between 6-12 chars"
-                  className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all"
+                  placeholder="e.g. Rahul Sharma"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all"
                 />
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                  Login ID <span className="text-gray-400 font-normal">(6-12 characters)</span>
+                </label>
+                <div className="relative">
+                  <UserIcon className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                  <input
+                    type="text"
+                    name="loginId"
+                    required
+                    value={formData.loginId}
+                    onChange={handleChange}
+                    placeholder="Unique ID between 6-12 chars"
+                    className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="name@company.com"
+                    className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                  Password <span className="text-gray-400 font-normal">(&gt;8 chars, Aa, special)</span>
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                  <input
+                    type="password"
+                    name="password"
+                    required
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="Min 9 chars with Upper, lower, special"
+                    className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                  Re-Enter Password
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                  <input
+                    type="password"
+                    name="confirmPassword"
+                    required
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    placeholder="Re-enter your password"
+                    className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full btn-primary py-2.5 text-sm font-semibold tracking-wide uppercase"
+                >
+                  {loading
+                    ? 'Creating Account...'
+                    : `SIGN UP AS ${formData.role === 'CONTACT_USER' ? 'PORTAL USER' : formData.role}`}
+                </button>
+              </div>
+
+              <div className="text-center pt-2 text-xs font-medium text-gray-600">
+                Already have an account?{' '}
+                <Link to="/login" className="text-[#714B67] hover:underline font-semibold">
+                  Sign In
+                </Link>
+              </div>
+            </form>
+          ) : (
+            <form className="space-y-4" onSubmit={handleVerifyOtp}>
+              <div className="text-center mb-6">
+                <Shield className="w-10 h-10 text-[#714B67] mx-auto mb-2" />
+                <h3 className="text-lg font-bold text-gray-900">Verify Your Email</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  We've sent a 6-digit one-time password to <span className="font-semibold text-gray-800">{formData.email}</span>. It expires in 5 minutes.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1 text-center">
+                  Enter 6-Digit OTP
+                </label>
                 <input
-                  type="email"
-                  name="email"
+                  type="text"
+                  maxLength={6}
                   required
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="name@company.com"
-                  className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all"
+                  value={otpCode}
+                  onChange={(e) => {
+                    setOtpCode(e.target.value.replace(/\D/g, ''));
+                    setError(null);
+                  }}
+                  placeholder="000000"
+                  className="w-full text-center text-2xl tracking-[0.5em] font-mono px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all"
                 />
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
-                Password <span className="text-gray-400 font-normal">(&gt;8 chars, Aa, special)</span>
-              </label>
-              <div className="relative">
-                <Lock className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-                <input
-                  type="password"
-                  name="password"
-                  required
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="Min 9 chars with Upper, lower, special"
-                  className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all"
-                />
+              <div className="pt-4 space-y-3">
+                <button
+                  type="submit"
+                  disabled={loading || otpCode.length !== 6}
+                  className="w-full btn-primary py-2.5 text-sm font-semibold tracking-wide uppercase disabled:opacity-50"
+                >
+                  {loading ? 'Verifying...' : 'Verify Account'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="w-full btn-outline py-2.5 text-sm font-semibold tracking-wide uppercase"
+                >
+                  Back to Details
+                </button>
               </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
-                Re-Enter Password
-              </label>
-              <div className="relative">
-                <Lock className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-                <input
-                  type="password"
-                  name="confirmPassword"
-                  required
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  placeholder="Re-enter your password"
-                  className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all"
-                />
-              </div>
-            </div>
-
-            <div className="pt-3">
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full btn-primary py-2.5 text-sm font-semibold tracking-wide uppercase"
-              >
-                {loading
-                  ? 'Creating Account...'
-                  : `SIGN UP AS ${formData.role === 'CONTACT_USER' ? 'PORTAL USER' : formData.role}`}
-              </button>
-            </div>
-
-            <div className="text-center pt-2 text-xs font-medium text-gray-600">
-              Already have an account?{' '}
-              <Link to="/login" className="text-[#714B67] hover:underline font-semibold">
-                Sign In
-              </Link>
-            </div>
-          </form>
+            </form>
+          )}
         </div>
       </div>
     </div>

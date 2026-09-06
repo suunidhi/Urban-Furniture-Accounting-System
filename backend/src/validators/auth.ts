@@ -61,10 +61,16 @@ export const forgotPasswordSchema = z.object({
   email: z.string().email('Invalid email address'),
 });
 
+export const verifySignupOtpSchema = z.object({
+  userId: z.number(),
+  otpCode: z.string().length(6, 'OTP must be exactly 6 characters'),
+});
+
 export const resetPasswordSchema = z
   .object({
     loginId: z.string().min(1, 'Login ID is required'),
     email: z.string().email('Invalid email address'),
+    otpCode: z.string().length(6, 'OTP must be exactly 6 characters'),
     newPassword: z
       .string()
       .min(8, 'Password must be more than 8 characters')

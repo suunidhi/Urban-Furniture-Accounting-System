@@ -17,16 +17,45 @@ export const ForgotPasswordPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState<1 | 2>(1);
+  const [otpCode, setOtpCode] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setError(null);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+    setLoading(true);
+
+    try {
+      const res = await api.post('/auth/forgot-password', {
+        loginId: formData.loginId,
+        email: formData.email,
+      });
+      if (res.data.success) {
+        setSuccess('OTP sent to your email! Please enter it below to reset your password.');
+        setStep(2);
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to verify account details.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+
+    if (otpCode.length !== 6) {
+      setError('OTP must be exactly 6 digits.');
+      return;
+    }
 
     if (formData.newPassword.length <= 8) {
       setError('Password must be more than 8 characters.');
@@ -50,7 +79,10 @@ export const ForgotPasswordPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const res = await api.post('/auth/reset-password', formData);
+      const res = await api.post('/auth/reset-password', {
+        ...formData,
+        otpCode,
+      });
       if (res.data.success) {
         setSuccess('Password reset successfully! Redirecting to login in 2 seconds...');
         setTimeout(() => {
@@ -58,7 +90,7 @@ export const ForgotPasswordPage: React.FC = () => {
         }, 2000);
       }
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Failed to reset password. Please verify Login ID and Email.';
+      const msg = err.response?.data?.message || 'Failed to reset password. Invalid OTP or details.';
       setError(msg);
     } finally {
       setLoading(false);
@@ -93,96 +125,137 @@ export const ForgotPasswordPage: React.FC = () => {
             </div>
           )}
 
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
-                Enter Login ID
-              </label>
-              <div className="relative">
-                <UserIcon className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+          {step === 1 ? (
+            <form className="space-y-4" onSubmit={handleRequestOtp}>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                  Enter Login ID
+                </label>
+                <div className="relative">
+                  <UserIcon className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                  <input
+                    type="text"
+                    name="loginId"
+                    required
+                    value={formData.loginId}
+                    onChange={handleChange}
+                    placeholder="Your registered Login ID"
+                    className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                  Enter Email ID
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="Your registered email address"
+                    className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full btn-primary py-2.5 text-sm font-semibold tracking-wide uppercase"
+                >
+                  {loading ? 'Verifying...' : 'REQUEST OTP'}
+                </button>
+              </div>
+              <div className="text-center pt-2 text-xs font-medium text-gray-600">
+                Remember your credentials?{' '}
+                <Link to="/login" className="text-[#714B67] hover:underline font-semibold">
+                  Sign In
+                </Link>
+              </div>
+            </form>
+          ) : (
+            <form className="space-y-4" onSubmit={handleResetPassword}>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1 text-center">
+                  Enter 6-Digit OTP
+                </label>
                 <input
                   type="text"
-                  name="loginId"
+                  maxLength={6}
                   required
-                  value={formData.loginId}
-                  onChange={handleChange}
-                  placeholder="Your registered Login ID"
-                  className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all"
+                  value={otpCode}
+                  onChange={(e) => {
+                    setOtpCode(e.target.value.replace(/\D/g, ''));
+                    setError(null);
+                  }}
+                  placeholder="000000"
+                  className="w-full text-center text-xl tracking-[0.5em] font-mono px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all"
                 />
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
-                Enter Email ID
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-                <input
-                  type="email"
-                  name="email"
-                  required
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="Your registered email address"
-                  className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all"
-                />
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                  Enter New Password
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                  <input
+                    type="password"
+                    name="newPassword"
+                    required
+                    value={formData.newPassword}
+                    onChange={handleChange}
+                    placeholder="New password (>8 chars with Aa & special)"
+                    className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
-                Enter New Password
-              </label>
-              <div className="relative">
-                <Lock className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-                <input
-                  type="password"
-                  name="newPassword"
-                  required
-                  value={formData.newPassword}
-                  onChange={handleChange}
-                  placeholder="New password (>8 chars with Aa & special)"
-                  className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all"
-                />
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                  Re-Enter Password
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                  <input
+                    type="password"
+                    name="confirmPassword"
+                    required
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    placeholder="Confirm new password"
+                    className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
-                Re-Enter Password
-              </label>
-              <div className="relative">
-                <Lock className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-                <input
-                  type="password"
-                  name="confirmPassword"
-                  required
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  placeholder="Confirm new password"
-                  className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all"
-                />
+              <div className="pt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep(1);
+                    setSuccess(null);
+                  }}
+                  className="w-1/3 btn-outline py-2.5 text-sm font-semibold tracking-wide uppercase"
+                >
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading || otpCode.length !== 6}
+                  className="w-2/3 btn-primary py-2.5 text-sm font-semibold tracking-wide uppercase"
+                >
+                  {loading ? 'Updating...' : 'RESET PASSWORD'}
+                </button>
               </div>
-            </div>
-
-            <div className="pt-3">
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full btn-primary py-2.5 text-sm font-semibold tracking-wide uppercase"
-              >
-                {loading ? 'Updating Password...' : 'RESET PASSWORD'}
-              </button>
-            </div>
-
-            <div className="text-center pt-2 text-xs font-medium text-gray-600">
-              Remember your credentials?{' '}
-              <Link to="/login" className="text-[#714B67] hover:underline font-semibold">
-                Sign In
-              </Link>
-            </div>
-          </form>
+            </form>
+          )}
         </div>
       </div>
     </div>

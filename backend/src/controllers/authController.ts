@@ -6,6 +6,7 @@ import {
   createUserSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  verifySignupOtpSchema,
 } from '../validators/auth';
 import { successResponse } from '../utils/response';
 import { AuthRequest } from '../middleware/auth';
@@ -25,7 +26,17 @@ export class AuthController {
     try {
       const validated = signupSchema.parse(req.body);
       const result = await AuthService.signup(validated);
-      return successResponse(res, result, 'Account created successfully', 201);
+      return successResponse(res, result, 'OTP sent to your email. Please verify.', 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async verifySignupOtp(req: Request, res: Response, next: NextFunction) {
+    try {
+      const validated = verifySignupOtpSchema.parse(req.body);
+      const result = await AuthService.verifySignupOtp(validated.userId, validated.otpCode);
+      return successResponse(res, result, 'Account verified successfully', 200);
     } catch (error) {
       next(error);
     }
@@ -57,6 +68,7 @@ export class AuthController {
       const result = await AuthService.resetPassword(
         validated.loginId,
         validated.email,
+        validated.otpCode,
         validated.newPassword
       );
       return successResponse(res, result, result.message);
