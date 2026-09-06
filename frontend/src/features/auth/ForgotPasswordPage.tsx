@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import urbanLogo from '../../assets/urban_logo.png';
 import api from '../../services/api';
 import { Lock, User as UserIcon, Mail, AlertCircle, CheckCircle } from 'lucide-react';
 
@@ -66,10 +67,8 @@ export const ForgotPasswordPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <div className="mx-auto w-14 h-14 bg-[#714B67] rounded-xl flex items-center justify-center text-white font-black text-2xl shadow-md">
-          UF
-        </div>
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center flex flex-col items-center">
+        <img src={urbanLogo} alt="Urban Furniture Logo" className="w-14 h-14 rounded-xl shadow-md object-cover" />
         <h2 className="mt-4 text-2xl font-bold tracking-tight text-[#2F2F2F]">
           Password Reset
         </h2>

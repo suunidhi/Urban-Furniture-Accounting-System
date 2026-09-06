@@ -163,6 +163,7 @@ model Product {
   status             RecordStatus        @default(ACTIVE)
   paymentTerms       String?             @default("30 Days") @db.VarChar(100)
   allowPartialPayment Boolean            @default(true)
+  stockQuantity      Int                 @default(0)
   defaultDueDate     DateTime?
   purchaseOrderLines PurchaseOrderLine[]
   vendorBillLines    VendorBillLine[]

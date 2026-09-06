@@ -89,16 +89,31 @@ export class PurchaseService {
   }
 
   static async confirmPO(id: number) {
-    const po = await prisma.purchaseOrder.findUnique({ where: { id } });
+    const po = await prisma.purchaseOrder.findUnique({ 
+      where: { id },
+      include: { lines: { include: { product: true } } }
+    });
     if (!po) throw new AppError('Purchase order not found', 404);
     if (po.status !== OrderStatus.DRAFT) {
       throw new AppError(`Cannot confirm a purchase order with status ${po.status}`, 400);
     }
 
-    return await prisma.purchaseOrder.update({
-      where: { id },
-      data: { status: OrderStatus.CONFIRMED },
-      include: { vendor: true, lines: true },
+    return await prisma.$transaction(async (tx) => {
+      // 1. Increment stock for GOODS
+      for (const line of po.lines) {
+        if (line.product.type === 'GOODS') {
+          await tx.product.update({
+            where: { id: line.productId },
+            data: { stockQuantity: { increment: Number(line.quantity) } },
+          });
+        }
+      }
+
+      return await tx.purchaseOrder.update({
+        where: { id },
+        data: { status: OrderStatus.CONFIRMED },
+        include: { vendor: true, lines: true },
+      });
     });
   }
 
@@ -454,6 +469,18 @@ export class PurchaseService {
           journalEntry: { include: { items: true } },
         },
       });
+
+      // 4. Increment stock for direct vendor bills
+      if (!bill.purchaseOrderId) {
+        for (const line of bill.lines) {
+          if (line.product.type === 'GOODS') {
+            await tx.product.update({
+              where: { id: line.productId },
+              data: { stockQuantity: { increment: Number(line.quantity) } },
+            });
+          }
+        }
+      }
 
       return updatedBill;
     });

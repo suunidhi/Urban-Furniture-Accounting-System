@@ -98,16 +98,43 @@ export class SalesService {
   }
 
   static async confirmSO(id: number) {
-    const so = await prisma.salesOrder.findUnique({ where: { id } });
+    const so = await prisma.salesOrder.findUnique({ 
+      where: { id },
+      include: { lines: { include: { product: true } } }
+    });
     if (!so) throw new AppError('Sales order not found', 404);
     if (so.status !== OrderStatus.DRAFT) {
       throw new AppError(`Cannot confirm a sales order with status ${so.status}`, 400);
     }
 
-    return await prisma.salesOrder.update({
-      where: { id },
-      data: { status: OrderStatus.CONFIRMED },
-      include: { customer: true, lines: true },
+    // 1. Check stock availability for GOODS
+    for (const line of so.lines) {
+      if (line.product.type === 'GOODS') {
+        if (Number(line.quantity) > line.product.stockQuantity) {
+          throw new AppError(
+            `Cannot fulfill order for "${line.product.name}". You only have ${line.product.stockQuantity} in stock, but ${line.quantity} was requested.`,
+            400
+          );
+        }
+      }
+    }
+
+    return await prisma.$transaction(async (tx) => {
+      // 2. Deduct stock for GOODS
+      for (const line of so.lines) {
+        if (line.product.type === 'GOODS') {
+          await tx.product.update({
+            where: { id: line.productId },
+            data: { stockQuantity: { decrement: Number(line.quantity) } },
+          });
+        }
+      }
+
+      return await tx.salesOrder.update({
+        where: { id },
+        data: { status: OrderStatus.CONFIRMED },
+        include: { customer: true, lines: true },
+      });
     });
   }
 
@@ -470,6 +497,20 @@ export class SalesService {
       throw new AppError('Cannot post an invoice with no line items.', 400);
     }
 
+    // 1. If this is a direct invoice (no Sales Order), check stock for GOODS
+    if (!invoice.salesOrderId) {
+      for (const line of invoice.lines) {
+        if (line.product.type === 'GOODS') {
+          if (Number(line.quantity) > line.product.stockQuantity) {
+            throw new AppError(
+              `Cannot fulfill direct invoice for "${line.product.name}". You only have ${line.product.stockQuantity} in stock, but ${line.quantity} was requested.`,
+              400
+            );
+          }
+        }
+      }
+    }
+
     // Find Debtors / Accounts Receivable account (1100)
     const debtorsAccount = await prisma.account.findFirst({
       where: { code: '1100' },
@@ -575,6 +616,18 @@ export class SalesService {
           journalEntry: { include: { items: true } },
         },
       });
+
+      // 2. Deduct stock for direct invoices
+      if (!invoice.salesOrderId) {
+        for (const line of invoice.lines) {
+          if (line.product.type === 'GOODS') {
+            await tx.product.update({
+              where: { id: line.productId },
+              data: { stockQuantity: { decrement: Number(line.quantity) } },
+            });
+          }
+        }
+      }
 
       return updatedInvoice;
     });

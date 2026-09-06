@@ -403,6 +403,7 @@ export const ProductsPage: React.FC = () => {
                 <th className="py-3 px-4">Product Name</th>
                 <th className="py-3 px-4">Category</th>
                 <th className="py-3 px-4">Type</th>
+                <th className="py-3 px-4 text-right">Stock</th>
                 <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4">Terms / Due Policy</th>
                 <th className="py-3 px-4 text-right">Sales Price</th>
@@ -430,6 +431,15 @@ export const ProductsPage: React.FC = () => {
                     <span className="text-xs font-medium text-gray-700 bg-gray-100 px-2 py-0.5 rounded">
                       {p.type}
                     </span>
+                  </td>
+                  <td className="py-3 px-4 text-right">
+                    {p.type === 'GOODS' ? (
+                      <span className={`font-mono font-semibold ${p.stockQuantity > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                        {p.stockQuantity || 0}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 font-mono">-</span>
+                    )}
                   </td>
                   <td className="py-3 px-4">
                     {p.status === 'ARCHIVED' ? (
@@ -567,6 +577,15 @@ export const ProductsPage: React.FC = () => {
                     <span className="text-xs text-gray-500">{p.type}</span>
                   </div>
                 </div>
+
+                {p.type === 'GOODS' && (
+                  <div className="mt-3 flex items-center justify-between text-xs font-semibold px-2 py-1.5 rounded bg-gray-50 border border-gray-100">
+                    <span className="text-gray-600">In Stock:</span>
+                    <span className={`font-mono ${p.stockQuantity > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                      {p.stockQuantity || 0}
+                    </span>
+                  </div>
+                )}
 
                 <div className="mt-2 flex items-center justify-between text-[11px] text-gray-500 bg-gray-50 p-2 rounded border border-gray-100">
                   <span>Terms: <strong>{p.paymentTerms || '30 Days'}</strong></span>

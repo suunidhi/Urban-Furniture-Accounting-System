@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import urbanLogo from '../../assets/urban_logo.png';
 import { 
   Building2, 
   Search, 
@@ -38,9 +39,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
         </button>
 
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-[#714B67] flex items-center justify-center text-white font-bold text-base shadow-sm">
-            UF
-          </div>
+          <img src={urbanLogo} alt="Urban Furniture Logo" className="w-8 h-8 rounded-lg shadow-sm object-cover" />
           <div className="hidden sm:block">
             <span className="font-bold text-[#2F2F2F] text-base tracking-tight">URBAN FURNITURE</span>
             <span className="text-xs text-[#017E84] font-semibold ml-2 px-1.5 py-0.5 bg-[#E6F4F4] rounded">ACCOUNTING</span>

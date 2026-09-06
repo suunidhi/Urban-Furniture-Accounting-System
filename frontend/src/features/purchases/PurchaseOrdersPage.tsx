@@ -115,6 +115,9 @@ export const PurchaseOrdersPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
       queryClient.invalidateQueries({ queryKey: ['purchase-order', detailPOId] });
     },
+    onError: (err: any) => {
+      alert(err.response?.data?.message || 'Failed to confirm Purchase Order.');
+    },
   });
 
   // Convert to Bill mutation

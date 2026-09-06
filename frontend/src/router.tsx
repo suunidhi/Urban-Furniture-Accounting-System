@@ -6,6 +6,7 @@ import { LoginPage } from './features/auth/LoginPage';
 import { SignUpPage } from './features/auth/SignUpPage';
 import { ForgotPasswordPage } from './features/auth/ForgotPasswordPage';
 import { ProtectedRoute } from './features/auth/ProtectedRoute';
+import { NotFoundPage } from './features/auth/NotFoundPage';
 import { UserManagementPage } from './features/admin/UserManagementPage';
 import { CompanySettingsPage } from './features/admin/CompanySettingsPage';
 import { ContactsPage } from './features/contacts/ContactsPage';
@@ -258,20 +259,15 @@ export const router = createBrowserRouter([
         ),
       },
 
-      // Fallback
+      // Fallback inside Protected App
       {
         path: '*',
-        element: (
-          <div className="bg-white p-8 rounded-xl border border-gray-200 text-center max-w-lg mx-auto my-12">
-            <h2 className="text-xl font-bold text-gray-800">Module Under Configuration</h2>
-            <p className="text-gray-500 text-sm mt-1">Please select an operational section from the navigation menu.</p>
-          </div>
-        ),
+        element: <NotFoundPage />,
       },
     ],
   },
   {
     path: '*',
-    element: <Navigate to="/login" replace />,
+    element: <NotFoundPage />,
   },
 ]);
