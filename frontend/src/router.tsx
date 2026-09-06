@@ -32,7 +32,7 @@ import { OCRAssistantPage } from './features/ocr/OCRAssistantPage';
 // Budgets
 import { BudgetsPage } from './features/budgets/BudgetsPage';
 
-// Reports
+// Reports & Analysis
 import { ReportsPage } from './features/reports/ReportsPage';
 
 // Portal
@@ -226,6 +226,8 @@ export const router = createBrowserRouter([
         path: 'reports/purchase-analytics',
         element: <ReportsPage />,
       },
+
+
 
       // Customer & Vendor Self-Service Portal
       {

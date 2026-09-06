@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useDebounce } from '../../hooks/useDebounce';
 import { Pagination } from '../../components/ui/Pagination';
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
 export const BudgetsPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -326,16 +327,40 @@ export const BudgetsPage: React.FC = () => {
                       <td className="py-3.5 px-4 text-right font-semibold text-gray-900">
                         ₹{Number(b.achievedAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="py-3.5 px-4">
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-xs font-semibold">
-                            <span className={isOver ? 'text-rose-600' : 'text-emerald-700'}>{pct}%</span>
+                      <td className="py-3.5 px-4 w-44">
+                        <div className="flex items-center gap-2">
+                          <div className="w-10 h-10">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                <Pie
+                                  data={[
+                                    { name: 'Achieved', value: Math.min(pct, 100) },
+                                    { name: isOver ? 'Overbudget' : 'Remaining', value: isOver ? pct - 100 : 100 - pct },
+                                  ]}
+                                  cx="50%"
+                                  cy="50%"
+                                  innerRadius={0}
+                                  outerRadius={18}
+                                  dataKey="value"
+                                  stroke="none"
+                                >
+                                  <Cell fill={isOver ? '#f43f5e' : '#10b981'} />
+                                  <Cell fill={isOver ? '#9f1239' : '#e5e7eb'} />
+                                </Pie>
+                                <RechartsTooltip contentStyle={{ fontSize: '10px', padding: '4px' }} />
+                              </PieChart>
+                            </ResponsiveContainer>
                           </div>
-                          <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                            <div
-                              className={`h-2 rounded-full ${isOver ? 'bg-rose-500' : 'bg-emerald-500'}`}
-                              style={{ width: `${Math.min(pct, 100)}%` }}
-                            />
+                          <div className="space-y-1 w-full">
+                            <div className="flex justify-between text-xs font-semibold">
+                              <span className={isOver ? 'text-rose-600' : 'text-emerald-700'}>{pct}%</span>
+                            </div>
+                            <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                              <div
+                                className={`h-2 rounded-full ${isOver ? 'bg-rose-500' : 'bg-emerald-500'}`}
+                                style={{ width: `${Math.min(pct, 100)}%` }}
+                              />
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -408,17 +433,41 @@ export const BudgetsPage: React.FC = () => {
                   </span>
                 </div>
 
-                {/* Progress */}
+                {/* Progress & Chart */}
                 <div className="space-y-1.5 pt-2 border-t border-gray-100">
-                  <div className="flex justify-between text-xs">
+                  <div className="flex justify-between text-xs items-center">
                     <span className="text-gray-500">Achievement Progress</span>
                     <span className={`font-bold ${isOver ? 'text-rose-600' : 'text-emerald-700'}`}>{pct}%</span>
                   </div>
-                  <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                    <div
-                      className={`h-2.5 rounded-full ${isOver ? 'bg-rose-500' : 'bg-emerald-500'}`}
-                      style={{ width: `${Math.min(pct, 100)}%` }}
-                    />
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 flex-shrink-0">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={[
+                              { name: 'Achieved', value: Math.min(pct, 100) },
+                              { name: isOver ? 'Overbudget' : 'Remaining', value: isOver ? pct - 100 : 100 - pct },
+                            ]}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={10}
+                            outerRadius={22}
+                            dataKey="value"
+                            stroke="none"
+                          >
+                            <Cell fill={isOver ? '#f43f5e' : '#10b981'} />
+                            <Cell fill={isOver ? '#9f1239' : '#e5e7eb'} />
+                          </Pie>
+                          <RechartsTooltip contentStyle={{ fontSize: '10px', padding: '4px' }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                      <div
+                        className={`h-2.5 rounded-full ${isOver ? 'bg-rose-500' : 'bg-emerald-500'}`}
+                        style={{ width: `${Math.min(pct, 100)}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -545,31 +594,60 @@ export const BudgetsPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Metrics */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100 text-xs">
-                <div>
-                  <span className="text-gray-400 block mb-1">Committed Target</span>
-                  <span className="text-sm font-bold text-gray-900">
-                    ₹{Number(budgetDetail.committedAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                  </span>
+              {/* Metrics & Chart */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100 text-xs">
+                  <div>
+                    <span className="text-gray-400 block mb-1">Committed Target</span>
+                    <span className="text-sm font-bold text-gray-900">
+                      ₹{Number(budgetDetail.committedAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 block mb-1">Live Achieved (GL)</span>
+                    <span className="text-sm font-bold text-emerald-700">
+                      ₹{Number(budgetDetail.achievedAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 block mb-1">Achievement Rate</span>
+                    <span className="text-sm font-bold text-purple-700">
+                      {budgetDetail.achievedPercentage}%
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 block mb-1">Balance Remaining</span>
+                    <span className="text-sm font-bold text-gray-700">
+                      ₹{Number(budgetDetail.amountToAchieve || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-gray-400 block mb-1">Live Achieved (GL)</span>
-                  <span className="text-sm font-bold text-emerald-700">
-                    ₹{Number(budgetDetail.achievedAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-400 block mb-1">Achievement Rate</span>
-                  <span className="text-sm font-bold text-purple-700">
-                    {budgetDetail.achievedPercentage}%
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-400 block mb-1">Balance Remaining</span>
-                  <span className="text-sm font-bold text-gray-700">
-                    ₹{Number(budgetDetail.amountToAchieve || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                  </span>
+
+                <div className="p-4 bg-white rounded-xl border border-gray-100 flex items-center justify-center">
+                  <div className="w-48 h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Achieved', value: Math.min(Number(budgetDetail.achievedPercentage || 0), 100) },
+                            { name: Number(budgetDetail.achievedPercentage || 0) > 100 ? 'Overbudget' : 'Remaining', value: Number(budgetDetail.achievedPercentage || 0) > 100 ? Number(budgetDetail.achievedPercentage || 0) - 100 : 100 - Number(budgetDetail.achievedPercentage || 0) },
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={40}
+                          outerRadius={80}
+                          dataKey="value"
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          labelLine={false}
+                          stroke="none"
+                        >
+                          <Cell fill={Number(budgetDetail.achievedPercentage || 0) > 100 ? '#f43f5e' : '#10b981'} />
+                          <Cell fill={Number(budgetDetail.achievedPercentage || 0) > 100 ? '#9f1239' : '#e5e7eb'} />
+                        </Pie>
+                        <RechartsTooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </div>
 

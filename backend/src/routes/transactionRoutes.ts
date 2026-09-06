@@ -33,7 +33,7 @@ invoiceRoutes.get('/:id', TransactionController.getInvoice);
 invoiceRoutes.post('/', requireRole([UserRole.ADMIN, UserRole.ACCOUNTANT]), TransactionController.createInvoice);
 invoiceRoutes.put('/:id', requireRole([UserRole.ADMIN, UserRole.ACCOUNTANT]), TransactionController.updateInvoice);
 invoiceRoutes.post('/:id/submit-approval', requireRole([UserRole.ADMIN, UserRole.ACCOUNTANT]), TransactionController.submitInvoiceForApproval);
-invoiceRoutes.post('/:id/post', requireRole([UserRole.ADMIN]), TransactionController.postInvoice);
+invoiceRoutes.post('/:id/post', requireRole([UserRole.ADMIN, UserRole.ACCOUNTANT]), TransactionController.postInvoice);
 
 export const paymentRoutes = Router();
 paymentRoutes.use(authenticate);

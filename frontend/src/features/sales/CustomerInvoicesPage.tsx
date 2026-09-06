@@ -568,7 +568,7 @@ export const CustomerInvoicesPage: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2">
-                {(invoiceDetail.status === 'DRAFT' || (invoiceDetail.status === 'PENDING_APPROVAL' && isAdmin)) && (
+                {isAdmin && (invoiceDetail.status === 'DRAFT' || invoiceDetail.status === 'PENDING_APPROVAL') && (
                   <button
                     onClick={() => {
                       setDetailInvoiceId(null);
@@ -590,7 +590,7 @@ export const CustomerInvoicesPage: React.FC = () => {
                   </button>
                 )}
 
-                {(invoiceDetail.status === 'PENDING_APPROVAL' || invoiceDetail.status === 'DRAFT') && isAdmin && (
+                {(invoiceDetail.status === 'PENDING_APPROVAL' || invoiceDetail.status === 'DRAFT') && (
                   <button
                     onClick={() => postMutation.mutate(invoiceDetail.id)}
                     disabled={postMutation.isPending}

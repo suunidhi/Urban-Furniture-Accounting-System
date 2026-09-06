@@ -166,7 +166,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     },
     {
       title: 'Report',
-      icon: BarChart3,
+      icon: FileSpreadsheet,
       items: [
         { title: 'Balance Sheet', path: '/reports/balance-sheet' },
         { title: 'Profit and Loss', path: '/reports/profit-loss' },
