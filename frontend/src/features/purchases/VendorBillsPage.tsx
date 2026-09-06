@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { 
   VendorBill, 
@@ -23,9 +24,9 @@ import {
   X, 
   AlertCircle, 
   Calendar, 
-  Building2, 
   DollarSign, 
-  Layers 
+  Layers,
+  Upload
 } from 'lucide-react';
 import { useDebounce } from '../../hooks/useDebounce';
 import { Pagination } from '../../components/ui/Pagination';
@@ -40,12 +41,15 @@ export const VendorBillsPage: React.FC = () => {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearch, statusFilter]);
 
   // Direct Bill Form State
+  const { isAdmin } = useAuth() || { isAdmin: false };
   const [formData, setFormData] = useState({
     vendorId: 0,
     billDate: new Date().toISOString().split('T')[0],
@@ -75,6 +79,59 @@ export const VendorBillsPage: React.FC = () => {
     reference: '',
     notes: '',
   });
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsExtracting(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const res = await api.post('/extract/pdf', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      const data = res.data.data.extractedData;
+            // Try to find matching vendor by name
+      let vendorId = 0;
+      if (vendors && data.partnerName) {
+        const found = vendors.find(v => v.name.toLowerCase().includes(data.partnerName.toLowerCase()));
+        if (found) vendorId = found.id;
+      }
+      
+      const purchaseJournal = journals?.find(j => j.type === 'PURCHASES') || journals?.[0];
+      const defaultJournalId = purchaseJournal ? purchaseJournal.id : 0;
+      const expenseAcc = accounts?.find(a => a.type === 'EXPENSE') || accounts?.[0];
+      const defaultAccId = expenseAcc ? expenseAcc.id : 0;
+
+      setFormData(prev => ({
+        ...prev,
+        vendorId: vendorId || prev.vendorId,
+        journalId: prev.journalId || defaultJournalId,
+        billDate: data.date ? new Date(data.date).toISOString().split('T')[0] : prev.billDate,
+        lines: [
+          {
+            ...prev.lines[0],
+            accountId: prev.lines[0].accountId || defaultAccId,
+            description: data.description || 'Extracted from PDF',
+            unitPrice: data.totalAmount || 0,
+          }
+        ]
+      }));
+
+      setModalOpen(true);
+      setDetailBillId(null);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.response?.data?.message || 'Failed to extract PDF');
+    } finally {
+      setIsExtracting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   // Fetch Bills
   const { data: bills, isLoading } = useQuery<VendorBill[]>({
@@ -345,13 +402,34 @@ export const VendorBillsPage: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={openNewBillModal}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#714B67] hover:bg-[#5a3b52] text-white rounded-lg font-medium shadow-sm transition-colors text-sm"
-        >
-          <Plus className="w-4 h-4" />
-          Create Direct Bill
-        </button>
+        <div className="flex gap-2">
+          {isAdmin && (
+            <>
+              <input 
+                type="file" 
+                accept=".pdf" 
+                className="hidden" 
+                ref={fileInputRef} 
+                onChange={handleFileUpload} 
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isExtracting}
+                className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium shadow-sm transition-colors text-sm disabled:opacity-50"
+              >
+                <Upload className="w-4 h-4" />
+                {isExtracting ? 'Extracting...' : 'Extract from PDF'}
+              </button>
+            </>
+          )}
+          <button
+            onClick={openNewBillModal}
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#714B67] hover:bg-[#5a3b52] text-white rounded-lg font-medium shadow-sm transition-colors text-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Create Direct Bill
+          </button>
+        </div>
       </div>
 
       {/* Filter & Search Bar */}

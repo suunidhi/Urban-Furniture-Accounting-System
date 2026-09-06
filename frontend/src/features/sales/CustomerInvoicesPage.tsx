@@ -25,7 +25,8 @@ import {
   Calendar, 
   Building2, 
   Printer, 
-  Download 
+  Download,
+  Upload
 } from 'lucide-react';
 import { useDebounce } from '../../hooks/useDebounce';
 import { Pagination } from '../../components/ui/Pagination';
@@ -41,6 +42,8 @@ export const CustomerInvoicesPage: React.FC = () => {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     setCurrentPage(1);
@@ -78,6 +81,60 @@ export const CustomerInvoicesPage: React.FC = () => {
     reference: '',
     notes: '',
   });
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsExtracting(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const res = await api.post('/extract/pdf', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      const data = res.data.data.extractedData;
+      
+      // Try to find matching customer by name
+      let customerId = 0;
+      if (customers && data.partnerName) {
+        const found = customers.find(c => c.name.toLowerCase().includes(data.partnerName.toLowerCase()));
+        if (found) customerId = found.id;
+      }
+      
+      const salesJournal = journals?.find(j => j.type === 'SALES') || journals?.[0];
+      const defaultJournalId = salesJournal ? salesJournal.id : 0;
+      const incomeAcc = accounts?.find(a => a.type === 'INCOME') || accounts?.[0];
+      const defaultAccId = incomeAcc ? incomeAcc.id : 0;
+
+      setFormData(prev => ({
+        ...prev,
+        customerId: customerId || prev.customerId,
+        journalId: prev.journalId || defaultJournalId,
+        invoiceDate: data.date ? new Date(data.date).toISOString().split('T')[0] : prev.invoiceDate,
+        lines: [
+          {
+            ...prev.lines[0],
+            accountId: prev.lines[0].accountId || defaultAccId,
+            description: data.description || 'Extracted from PDF',
+            unitPrice: data.totalAmount || 0,
+          }
+        ]
+      }));
+
+      setModalOpen(true);
+      setIsEditMode(false);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.response?.data?.message || 'Failed to extract PDF');
+    } finally {
+      setIsExtracting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   // Fetch Invoices
   const { data: invoices, isLoading } = useQuery<CustomerInvoice[]>({
@@ -421,13 +478,34 @@ export const CustomerInvoicesPage: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={openNewInvoiceModal}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#714B67] hover:bg-[#5a3b52] text-white rounded-lg font-medium shadow-sm transition-colors text-sm"
-        >
-          <Plus className="w-4 h-4" />
-          Create Direct Invoice
-        </button>
+        <div className="flex gap-2">
+          {isAdmin && (
+            <>
+              <input 
+                type="file" 
+                accept=".pdf" 
+                className="hidden" 
+                ref={fileInputRef} 
+                onChange={handleFileUpload} 
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isExtracting}
+                className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium shadow-sm transition-colors text-sm disabled:opacity-50"
+              >
+                <Upload className="w-4 h-4" />
+                {isExtracting ? 'Extracting...' : 'Extract from PDF'}
+              </button>
+            </>
+          )}
+          <button
+            onClick={openNewInvoiceModal}
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#714B67] hover:bg-[#5a3b52] text-white rounded-lg font-medium shadow-sm transition-colors text-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Create Direct Invoice
+          </button>
+        </div>
       </div>
 
       {/* Filter & Search Bar */}

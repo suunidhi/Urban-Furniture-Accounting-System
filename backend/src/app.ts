@@ -48,6 +48,7 @@ import { accountingRoutes } from './routes/accountingRoutes';
 import { budgetRoutes } from './routes/budgetRoutes';
 import { reportRoutes } from './routes/reportRoutes';
 import { ocrRoutes } from './routes/ocrRoutes';
+import { extractRoutes } from './routes/extractRoutes';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/contacts', contactRoutes);
@@ -65,8 +66,11 @@ app.use('/api/accounting', accountingRoutes);
 app.use('/api/budgets', budgetRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/ocr', ocrRoutes);
+app.use('/api/extract', extractRoutes);
 
 // Centralized error handler
 app.use(errorHandler);
 
 export default app;
+// trigger restart
+// trigger restart 2
