@@ -262,9 +262,10 @@ export const router = createBrowserRouter([
       {
         path: '*',
         element: (
-          <div className="bg-white p-8 rounded-xl border border-gray-200 text-center max-w-lg mx-auto my-12">
-            <h2 className="text-xl font-bold text-gray-800">Module Under Configuration</h2>
-            <p className="text-gray-500 text-sm mt-1">Please select an operational section from the navigation menu.</p>
+          <div className="bg-white p-8 rounded-xl border border-gray-200 text-center max-w-lg mx-auto my-12 shadow-sm">
+            <h2 className="text-3xl font-bold text-gray-800 mb-2">404</h2>
+            <h3 className="text-xl font-semibold text-gray-700">Page Not Found</h3>
+            <p className="text-gray-500 text-sm mt-2">The page or module you are looking for does not exist or has been moved.</p>
           </div>
         ),
       },
